@@ -1,0 +1,52 @@
+# main에 올릴 때마다: 테스트 → 안드로이드 앱(APK) 빌드 → "최신 버전" 다운로드 링크로 게시
+name: Build APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 게임 테스트
+        run: |
+          node tests/regression.js
+          node tests/invest_relic.js
+      - name: 게임 파일·아이콘 준비
+        run: node tools/build_app.js
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: 서명 키 준비
+        env:
+          KS_B64: ${{ secrets.AG_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/ag.jks"; echo "AG_KEYSTORE_FILE=$RUNNER_TEMP/ag.jks" >> "$GITHUB_ENV"; else echo "서명 키 없음 - 디버그 키로 빌드"; fi
+      - name: APK 빌드
+        working-directory: android
+        env:
+          AG_KEYSTORE_PASSWORD: ${{ secrets.AG_KEYSTORE_PASSWORD }}
+          AG_KEY_ALIAS: ${{ secrets.AG_KEY_ALIAS }}
+        run: gradle assembleRelease -PversionCode=${{ github.run_number }} --no-daemon
+      - name: 파일 이름 정리
+        run: cp android/app/build/outputs/apk/release/app-release.apk afterglow-protocol.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: afterglow-protocol-apk
+          path: afterglow-protocol.apk
+      - name: 다운로드 링크(릴리스) 게시
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v1.0.${{ github.run_number }}"
+          gh release create "$TAG" afterglow-protocol.apk --title "잔광 프로토콜 $TAG" --notes "안드로이드 앱. 휴대폰에서 afterglow-protocol.apk를 받아 설치하세요." --latest
