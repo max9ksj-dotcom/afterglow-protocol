@@ -1,4 +1,4 @@
-# 잔광 프로토콜 앱 배포: 테스트 → 앱 빌드 → GitHub의 gh-pages 가지에 올림 (GitHub Pages가 그 내용을 앱 주소로 보여 줌)
+﻿# 잔광 프로토콜 앱 배포: 테스트 → 앱 빌드 → GitHub의 gh-pages 가지에 올림 (GitHub Pages가 그 내용을 앱 주소로 보여 줌)
 # 사용법: powershell -ExecutionPolicy Bypass -File tools\deploy_app.ps1
 $ErrorActionPreference = 'Stop'
 $env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User")
