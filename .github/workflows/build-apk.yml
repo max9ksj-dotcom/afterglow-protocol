@@ -45,6 +45,8 @@ jobs:
           name: afterglow-protocol-apk
           path: afterglow-protocol.apk
       - name: 다운로드 링크(릴리스) 게시
+        # 정식 서명 키가 있을 때만 공개 (임시 키 앱을 깔면 나중에 업데이트가 안 되어 저장 데이터를 잃을 수 있음)
+        if: env.AG_KEYSTORE_FILE != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

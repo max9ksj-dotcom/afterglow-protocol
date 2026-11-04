@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
 }
 
 // 버전 번호는 GitHub Actions 실행 번호로 자동 증가 (업데이트 설치가 되려면 매번 커져야 함)
@@ -39,6 +40,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
     }
     // 게임 HTML 안의 음악(base64)을 압축하지 않아도 되도록 기본값 사용
 }
