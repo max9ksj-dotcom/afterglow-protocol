@@ -64,8 +64,7 @@ console.log('앱 빌드 완료:',OUT,'('+Math.round(h.length/1024)+'KB, 빌드 '
 // ---------- 안드로이드 앱(APK)용: 게임 원본을 assets에, 아이콘을 mipmap에 넣는다 (android/ 폴더에서 gradle로 빌드)
 const AND=path.join(ROOT,'android','app','src','main');
 if(fs.existsSync(AND)){
- const as=path.join(AND,'assets');fs.mkdirSync(as,{recursive:true});
- fs.copyFileSync(path.join(ROOT,'afterglow_protocol.html'),path.join(as,'index.html'));
+ const as=path.join(AND,'assets');require('./export_game_data.js');
  for(const [d,s] of [['mdpi',48],['hdpi',72],['xhdpi',96],['xxhdpi',144],['xxxhdpi',192]]){const dir=path.join(AND,'res','mipmap-'+d);fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(path.join(dir,'ic_launcher.png'),png(s))}
  console.log('안드로이드 assets/아이콘 준비 완료:',as);
 }

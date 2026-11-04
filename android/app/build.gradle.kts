@@ -44,9 +44,9 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-    // 게임 HTML 안의 음악(base64)을 압축하지 않아도 되도록 기본값 사용
+    // 음악 파일은 압축 없이 넣어야 바로 재생된다
+    androidResources {
+        noCompress += "wav"
+    }
 }
 
-dependencies {
-    implementation("androidx.webkit:webkit:1.11.0")
-}
