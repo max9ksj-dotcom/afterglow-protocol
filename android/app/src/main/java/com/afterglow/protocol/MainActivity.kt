@@ -38,7 +38,7 @@ class MainActivity : Activity() {
     private fun barBtn(s: String, click: (TextView) -> Unit): TextView {
         val d = resources.displayMetrics.density
         return TextView(this).apply {
-            text = s; setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11f); setTextColor(Col.parse(INK)); gravity = Gravity.CENTER
+            typeface = AgFont.regular; text = s; setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11f); setTextColor(Col.parse(INK)); gravity = Gravity.CENTER
             minHeight = (34 * d).toInt(); minWidth = (34 * d).toInt(); setPadding((8 * d).toInt(), (6 * d).toInt(), (8 * d).toInt(), (6 * d).toInt())
             background = GradientDrawable().apply { setColor(Col.parse("#1a1f3a")); setStroke(d.toInt().coerceAtLeast(1), Col.parse("#2c335c")); cornerRadius = 4 * d }
             setOnClickListener { click(this) }
@@ -50,6 +50,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         host = this
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        AgFont.load(this)
         loadData(this)
         svLoad(this)
         initSprites()
@@ -121,7 +122,7 @@ class MainActivity : Activity() {
     override fun onDestroy() { if (host === this) host = null; super.onDestroy() }
 }
 
-/** 게임 화면. 작은 버퍼에 그린 뒤 화면 크기로 늘려 도트 느낌을 유지한다. */
+/** 게임 화면. 원본 웹판처럼 화면 크기의 작은 버퍼에 그린 뒤 각지게 늘려 도트 느낌을 낸다(글씨 포함). */
 class GameView(c: Context) : View(c), Choreographer.FrameCallback {
     private val den = resources.displayMetrics.density.toDouble()
     private var running = false
@@ -129,9 +130,7 @@ class GameView(c: Context) : View(c), Choreographer.FrameCallback {
     private var g: G? = null
     private var cv: Canvas? = null
     private val dst = Rect()
-    private val bp = Paint().apply { isFilterBitmap = true }
-    private var slow = 0
-    private var cnt = 0
+    private val bp = Paint().apply { isFilterBitmap = false }
     private var pm = -1
     private var pa = -1
 
@@ -155,7 +154,6 @@ class GameView(c: Context) : View(c), Choreographer.FrameCallback {
         if (!running) return
         val dt = if (last == 0L) 0.0 else Math.min(.05, (ns - last) / 1e9)
         last = ns
-        val t0 = System.nanoTime()
         try {
             tick(dt)
             val c = cv; val gg = g
@@ -165,14 +163,6 @@ class GameView(c: Context) : View(c), Choreographer.FrameCallback {
                 c.restoreToCount(1)
             }
         } catch (e: Exception) { android.util.Log.e("afterglow", "frame", e) }
-        // 기기가 버거워하면 내부 해상도를 낮춘다
-        val ms = (System.nanoTime() - t0) / 1e6
-        cnt++
-        if (ms > 24) slow++
-        if (cnt >= 90) {
-            if (slow > 45 && RS > 1.0) { RS = 1.0; setup(width, height) }
-            cnt = 0; slow = 0
-        }
         invalidate()
         Choreographer.getInstance().postFrameCallback(this)
     }

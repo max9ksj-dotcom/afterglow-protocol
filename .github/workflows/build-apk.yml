@@ -18,6 +18,7 @@ jobs:
         run: |
           node tests/regression.js
           node tests/invest_relic.js
+          node tests/postgame.js
       - name: 게임 파일·아이콘 준비
         run: node tools/build_app.js
       - uses: actions/setup-java@v4

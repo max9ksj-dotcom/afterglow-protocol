@@ -8,7 +8,7 @@ CLAUDE.md
 README.txt
 docs/
 # 안드로이드 빌드 중 자동 생성되는 파일
-android/app/src/main/assets/
+android/app/src/main/assets/gamedata.json
 android/app/src/main/res/mipmap-*/
 android/.gradle/
 android/build/

@@ -15,6 +15,10 @@ class Rel(val id: String, val pm: Boolean, val n: String, val g: Int, val cat: S
 class Pd(val id: String, val n: String, val mx: Int, val t: String)
 class Chr(val id: String, val n: String, val d: String, val m: Map<String, Double>, val pal: Map<Char, String>,
           val ex: List<Triple<Int, Int, String>>, val cd: String)
+class Mut(val id: String, val n: String, val d: String)
+class Awk(val id: String, val n: String, val t: String, val k: String, val per: Double, val max: Int, val c: Int, val u: String)
+class Ach(val id: String, val n: String, val d: String, val k: String, val v: Int, val r: Int)
+class Lg(val f: Int, val n: String, val t: String)
 class Wpx(val x: Int, val y: Double, val c: String, val fc: String)
 
 val WD = LinkedHashMap<String, Wd>()
@@ -27,6 +31,11 @@ val UM = HashMap<String, Up>()
 val REL = ArrayList<Rel>()
 val RM = HashMap<String, Rel>()
 val PD = LinkedHashMap<String, Pd>()
+var OCN = 10
+val MUT = ArrayList<Mut>()
+val AWK = ArrayList<Awk>()
+val ACH = ArrayList<Ach>()
+val LOG = ArrayList<Lg>()
 val CHR = ArrayList<Chr>()
 val IC = HashMap<String, List<String>>()
 val ICP = HashMap<Char, String>()
@@ -83,6 +92,21 @@ fun loadData(ctx: Context) {
             REL.add(r); RM[r.id] = r
         }
     }
+    OCN = j.getInt("OCN")
+    j.getJSONArray("MUT").let { a -> for (i in 0 until a.length()) { val o = a.getJSONObject(i); MUT.add(Mut(o.getString("id"), o.getString("n"), o.getString("d"))) } }
+    j.getJSONArray("AWK").let { a ->
+        for (i in 0 until a.length()) {
+            val o = a.getJSONObject(i)
+            AWK.add(Awk(o.getString("id"), o.getString("n"), o.getString("t"), o.getString("k"), o.getDouble("per"), o.getInt("max"), o.getInt("c"), o.getString("u")))
+        }
+    }
+    j.getJSONArray("ACH").let { a ->
+        for (i in 0 until a.length()) {
+            val o = a.getJSONObject(i)
+            ACH.add(Ach(o.getString("id"), o.getString("n"), o.getString("d"), o.getString("k"), o.getInt("v"), o.getInt("r")))
+        }
+    }
+    j.getJSONArray("LOG").let { a -> for (i in 0 until a.length()) { val o = a.getJSONObject(i); LOG.add(Lg(o.getInt("f"), o.getString("n"), o.getString("t"))) } }
     j.getJSONArray("PD").let { a ->
         for (i in 0 until a.length()) { val p = a.getJSONArray(i); PD[p.getString(0)] = Pd(p.getString(0), p.getString(1), p.getInt(2), p.getString(3)) }
     }
@@ -111,7 +135,14 @@ fun loadData(ctx: Context) {
 }
 
 // ===== 저장 데이터 (원본의 ap_save2와 같은 구조) =====
+/** 생존 이후 기록. 예전 저장에는 없으므로 전부 0에서 시작한다. */
+class Xs {
+    var clr = 0; var ocm = 0; var oc = 0; var occ = 0; var fl = 0; var br = 0; var tk = 0; var cr = 0; var bt = 0
+    val ac = HashSet<String>()
+    val aw = HashMap<String, Int>()
+}
 class Save {
+    val x = Xs()
     var p = 6
     val n = HashSet<String>()
     val u = hashSetOf("kai")
@@ -145,6 +176,14 @@ fun svLoad(ctx: Context) {
             o.optJSONObject("up")?.let { for (u in UPS) { val l = it.optInt(u.id, 0).coerceIn(0, u.max); if (l > 0) s.up[u.id] = l } }
             o.optJSONObject("rd")?.let { for (k in it.keys()) if (RM.containsKey(k)) s.rd.add(k) }
             o.optJSONObject("rk")?.let { for (r in REL) if (r.pm) { val v = it.optInt(r.id, 0).coerceIn(0, r.mx); if (v > 0) s.rk[r.id] = v } }
+            o.optJSONObject("x")?.let {
+                val x = s.x
+                fun n(k: String) = Math.max(0, it.optInt(k, 0))
+                x.clr = n("clr"); x.ocm = Math.min(OCN, n("ocm")); x.occ = Math.min(OCN, n("occ")); x.oc = Math.min(x.ocm, n("oc"))
+                x.fl = n("fl"); x.br = n("br"); x.tk = n("tk"); x.cr = n("cr"); x.bt = n("bt")
+                it.optJSONObject("ac")?.let { q -> for (a in ACH) if (q.optInt(a.id, 0) != 0) x.ac.add(a.id) }
+                it.optJSONObject("aw")?.let { q -> for (a in AWK) { val l = q.optInt(a.id, 0).coerceIn(0, a.max); if (l > 0) x.aw[a.id] = l } }
+            }
         }
     } catch (e: Exception) { }
     SV = s
@@ -164,6 +203,10 @@ fun sv() {
         o.put("upc", SV.upc)
         o.put("rd", JSONObject().also { j -> SV.rd.forEach { j.put(it, 1) } })
         o.put("rk", JSONObject().also { j -> SV.rk.forEach { (k, v) -> j.put(k, v) } })
+        val x = SV.x
+        o.put("x", JSONObject().put("clr", x.clr).put("ocm", x.ocm).put("oc", x.oc).put("occ", x.occ).put("fl", x.fl).put("br", x.br).put("tk", x.tk).put("cr", x.cr).put("bt", x.bt)
+            .put("ac", JSONObject().also { j -> x.ac.forEach { j.put(it, 1) } })
+            .put("aw", JSONObject().also { j -> x.aw.forEach { (k, v) -> j.put(k, v) } }))
         host?.getSharedPreferences("afterglow", Context.MODE_PRIVATE)?.edit()?.putString(KEY, o.toString())?.apply()
     } catch (e: Exception) { }
 }
@@ -173,6 +216,7 @@ private val TBc = HashMap<String, Double>()
 fun rcb() {
     TBc.clear()
     for (n in NL) if (SV.n.contains(n.id)) for ((k, v) in n.e) if (v is Number) TBc[k] = (TBc[k] ?: 0.0) + v.toDouble()
+    for (a in AWK) { val l = SV.x.aw[a.id] ?: 0; if (l > 0) TBc[a.k] = (TBc[a.k] ?: 0.0) + l * a.per }
 }
 fun tb(k: String): Double = TBc[k] ?: 0.0
 fun chm(k: String): Double = (CHR.find { it.id == SV.ch } ?: CHR[0]).m[k] ?: 0.0

@@ -67,6 +67,8 @@ class St(val w0: String, @JvmField var T: Double) {
     var cr: List<List<DoubleArray>> = emptyList(); var zz: List<DoubleArray> = emptyList(); var bo: En? = null; var lhp: Double? = null
     var hf = 1.0; var xo = 0.0; var lastSwap: Double? = null; var rivalId: String? = null; var rcs: Spr? = null; var t3 = false
     var cur: List<Opt> = emptyList(); var bonus = false
+    var oc = 0; var fl = 0; var mut: Mut? = null; var mk2 = 0.0; var db = 0.0; var da = 0.0; var dv = 0.0; var tt = 0.0; var cr0 = 0; var rush = false
+    val na = ArrayList<String>()
 }
 
 lateinit var P: Pl
@@ -87,10 +89,10 @@ fun relX(): RelX {
 }
 fun stat(): Stat {
     val rx = relX()
-    return Stat(1.15 + .06 * pl("over") + tb("dm") + chm("dm") + up("dm") + rx.dm, 1 - .05 * pl("acc") - tb("iv") - rx.iv,
+    return Stat(1.15 + .06 * pl("over") + tb("dm") + chm("dm") + up("dm") + rx.dm + S.db, 1 - .05 * pl("acc") - tb("iv") - rx.iv,
         1 + .07 * pl("lens") + tb("ar") + chm("ar") + up("ar") + rx.ar, pl("pierce"), .05 + .04 * pl("prec") + tb("cr") + chm("cr") + up("cr"),
-        1.5 + tb("cd"), 1 + tb("bd"), 1 + .05 * pl("mob") + tb("mv") + chm("mv") + up("mv") + rx.mv,
-        Math.max(.3, 1 - .08 * pl("arm") - tb("am") - chm("am") - (if (SV.stG < 3) .2 else 0.0) - rx.am - (if (P.hp < P.mh * .3) up("lh") else 0.0)) * (if (S.shd > 0) .5 else 1.0),
+        1.5 + tb("cd"), 1 + tb("bd"), 1 + .05 * pl("mob") + tb("mv") + chm("mv") + up("mv") + rx.mv + S.dv,
+        Math.max(.3, 1 - .08 * pl("arm") - tb("am") - chm("am") - (if (SV.stG < 3) .2 else 0.0) - S.da - rx.am - (if (P.hp < P.mh * .3) up("lh") else 0.0)) * (if (S.shd > 0) .5 else 1.0) * dmgMul(),
         pl("chain"))
 }
 
@@ -133,7 +135,7 @@ fun bugName(e: En, txt: String) {
     S.fx.add(Fx('m', 1.2, 1.2).also { it.x = e.x; it.y = e.y - e.r - 30; it.txt = txt })
     S.bt = Math.max(S.bt, .18)
 }
-fun gainXP(v: Double) { P.xp += v * (1 + tb("xp") + up("xp")) * (1 + Math.min(.5 + .5 * rlc("combo"), S.cb * .02)) }
+fun gainXP(v: Double) { P.xp += v * (if (S.mut?.id == "drain") 2 else 1) * (1 + tb("xp") + up("xp")) * (1 + Math.min(.5 + .5 * rlc("combo"), S.cb * .02)) }
 
 // ===== 합체 무기 부가 효과 =====
 val RI = mapOf("cleave" to "#ffd0a0", "ricochet" to "#f6f", "pull" to "#a8f", "shards" to "#8f8", "chain" to "#ff6", "mark" to "#9ef", "blast" to "#f86")
@@ -406,9 +408,9 @@ val ED = mapOf("crawl" to Ed(30.0, 70.0, 11.0, 1.0, 2.0), "bat" to Ed(18.0, 95.0
 val CLR = mapOf("crawl" to "#e55", "bat" to "#e88", "charge" to "#b86a3a", "split" to "#6d4", "mini" to "#6d4", "spit" to "#c4c", "tank" to "#6a8aa8", "bomb" to "#fa3", "hboss" to "#c4506a", "rival" to "#ff8ad8", "boss" to "#c4506a")
 const val CAP = 150
 fun aliveN(): Int { var n = 0; S.en.each { if (!it.dead && !it.inv) n++ }; return n }
-fun tmf() = if (S.t < 300) S.t / 30 else 10 + (S.t - 300) / 90
+fun tmf() = if (S.pg >= 4) 14 + S.fl * 1.5 else if (S.t < 300) S.t / 30 else 10 + (S.t - 300) / 90
 fun pickE(): String {
-    val t = S.t + (if (S.pg > 1) 150 else 0) + S.xo; val r = rnd()
+    val t = S.t + (if (S.pg >= 4) 500 else if (S.pg > 1) 150 else 0) + S.xo; val r = rnd()
     if (t > 480 && r < .1) return "tank"
     if (t > 420 && r < .2) return "spit"
     if (t > 330 && r < .3) return "bomb"
@@ -420,10 +422,10 @@ fun pickE(): String {
 fun spawn(k: String, x: Double? = null, y: Double? = null): En? {
     if (k != "boss" && k != "hboss" && k != "rival" && aliveN() >= CAP) return null
     val D = ED[k]!!; val tm = tmf(); val a = rnd() * TAU; val d = hyp(W, H) * .55 + 30; val b = k == "boss"
-    val hp = if (b) D.hp else D.hp * 1.8 * (1 + .18 * tm) * (if (S.pg > 1) 1.5 else 1.0)
+    val hp = (if (b) D.hp else D.hp * 1.8 * (1 + .18 * tm) * (if (S.pg > 1) 1.5 else 1.0)) * eHp()
     val e = En(k)
     e.col = CLR[k]!!; e.x = x ?: (P.x + cos(a) * d); e.y = y ?: (P.y + sin(a) * d); e.hp = hp; e.mh = hp
-    e.sp = D.sp * 1.05 * (if (S.pg > 1) 1.08 else 1.0); e.r = D.r; e.xp = D.xp; e.sc = D.sc; e.boss = b; e.ph = rnd() * 6; e.cd = 1 + rnd() * 2
+    e.sp = D.sp * 1.05 * (if (S.pg > 1) 1.08 else 1.0) * eSp(); e.r = D.r; e.xp = D.xp; e.sc = D.sc; e.boss = b; e.ph = rnd() * 6; e.cd = 1 + rnd() * 2
     S.en.add(e)
     return e
 }
@@ -705,9 +707,10 @@ fun upd(dt0: Double) {
         for (i in 0 until n) spawn(pickE())
         S.sc = Math.max(.3, .85 - .04 * tm)
     }
+    deepUpd(dt); S.tt += dt
     S.elt -= dt
-    if (S.elt <= 0 && S.pg < 2) {
-        S.elt = 70.0
+    if (S.elt <= 0 && (S.pg < 2 || S.mut?.id == "elite")) {
+        S.elt = if (S.pg < 2) 70.0 else 14.0
         if (!S.en.any { it.el && !it.dead } && aliveN() < CAP) {
             var ty: String; var tr = 0
             do { ty = pickE() } while (ty in listOf("bat", "bomb", "mini") && tr++ < 8)
@@ -850,11 +853,12 @@ fun upd(dt0: Double) {
     if (P.xp >= P.nx && S.run) {
         P.xp -= P.nx; P.lv++; P.nx = 6.0 + P.lv * 4; P.hp = Math.min(P.mh, P.hp + P.mh * up("lu")); lvup()
     }
-    if (S.rpend && S.run && S.pg < 2) { S.rpend = false; relicPick() }
+    if (S.rpend && S.run && (S.pg < 2 || S.pg >= 4)) { S.rpend = false; relicPick() }
     if (P.hp <= 0) {
         if (S.rv > 0) { S.rv--; P.hp = P.mh * .5; P.inv = 2.0; aoe(P.x, P.y, 220.0, 90.0, null, "#ffd24a"); S.msg = "부활!"; S.mt = 2.0 } else end(false)
     } else if (S.t >= S.T) {
-        if (S.pg == 2) startP3()
+        if (S.pg >= 4) deepClear()
+        else if (S.pg == 2) startP3()
         else if (S.boss && !S.bg) end(false, "제한 시간 안에 보스를 쓰러뜨리지 못했습니다")
         else end(true)
     }
@@ -1033,6 +1037,7 @@ fun startGame(w: String) {
     Sn = s
     s.ws[w] = Wp(1, .2)
     s.rl.putAll(SV.rk)
+    s.oc = SV.x.oc
     s.rv = tb("rv").toInt(); s.rr = tb("rr").toInt(); s.sl = tb("sl").toInt()
     joy = null; aimJ = null
     bgmSet("game")
@@ -1052,11 +1057,12 @@ fun bank(w: Boolean): Int {
     val first = !S.gb && SV.stG < 3
     if (!S.gb) { SV.stG++; S.gb = true }
     val dk = S.kills - S.k0
+    SV.x.tk += dk
     SV.stW += if (w) 1 else 0
     SV.stMk = Math.max(SV.stMk, S.kills)
     SV.stB += if (S.bg) 1 else 0
     val nu = unlockChk()
-    val base = Math.max(1, Math.floor((dk / 80.0 + S.t / 150 + (if (w) (if (dk >= 100) 3 else 1) else 0) + (if (S.bg) 3 else 0)) * (1 + tb("pg"))).toInt())
+    val base = Math.max(1, Math.floor((dk / 80.0 + S.t / 150 + (if (w) (if (dk >= 100) 3 else 1) else 0) + (if (S.bg) 3 else 0)) * (1 + tb("pg")) * ocP()).toInt())
     val bonus = if (first) 3 else 0
     val sh = base + bonus
     SV.p += sh; sv()
@@ -1066,10 +1072,13 @@ fun bank(w: Boolean): Int {
 }
 fun end(w: Boolean, msg0: String? = null) {
     if (S.ended) return
+    if (w && S.pg >= 4) { deepClear(); return }
     if (w && S.pg < 2 && S.gl == 0.0 && S.bg) { bank(true); startGlitch(); return }
     var msg = msg0
     if (w && S.pg < 2 && !S.bg && msg == null) msg = "보스(9분 등장)를 쓰러뜨려야 다음 페이지로 넘어갈 수 있습니다"
     S.ended = true; S.run = false; bgmSet(null); bank(w)
+    if (w && S.pg == 3) xClear()
+    achChk()
     uiEnd(w, msg)
 }
 
@@ -1135,7 +1144,7 @@ fun toRival() {
     val h = HSC[c.id]!!
     ES["rival"] = Es(h[0].n, h[2].n, h[0].w, h[2].w, h[0].n, h[2].n)
     val e = spawn("rival", P.x, P.y - 330)!!
-    e.boss = true; e.hp = P.mh * 50; e.mh = e.hp; e.wl = bs + fz; e.cid = c.id; e.col = "#ff8ad8"; e.cd = 2.0
+    e.boss = true; e.hp = P.mh * 50 * eHp(); e.mh = e.hp; e.wl = bs + fz; e.cid = c.id; e.col = "#ff8ad8"; e.cd = 2.0
     S.bo = e; S.msg = "ERROR_CLONE 출현: " + c.n; S.mt = 4.0
 }
 fun fxStep(dt: Double) {

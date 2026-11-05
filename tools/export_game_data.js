@@ -13,7 +13,7 @@ sb.window=sb;vm.createContext(sb);
 const dump=`;globalThis.__D=JSON.stringify({
 WD:Object.keys(WD).map(k=>Object.assign({id:k},WD[k])),
 NL:NL.map(n=>({id:n.id,t:n.t,x:n.x,y:n.y,c:n.c,nm:n.nm,e:Object.keys(n.e).map(k=>[k,n.e[k]]),rq:n.rq,ex:n.ex,rg:n.rg})),
-LK,REL,UPS,PD:Object.keys(PD).map(k=>[k].concat(PD[k])),IC,ICP,PH,TOP,LG,
+LK,REL,UPS,OCN,MUT,AWK,ACH,LOG,PD:Object.keys(PD).map(k=>[k].concat(PD[k])),IC,ICP,PH,TOP,LG,
 CHR:CHR.map(c=>({id:c.id,n:c.n,d:c.d,m:c.m,pal:c.pal,ex:c.ex,cd:c.cd})),
 SPR:{CR,CH,SPL,SPT,TK,BS,BMB},GEMS:{G_DI,G_OR,G_DR,G_SQ,G_ST,G_CR},WSH,WV,WP});`;
 vm.runInContext(js+dump,sb);

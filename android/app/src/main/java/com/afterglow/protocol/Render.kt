@@ -130,9 +130,12 @@ fun hsh(a: Int, b: Int): Long {
 
 // ===== 화면 버퍼 =====
 var frame: Bitmap? = null
-var RS = 2.0
+const val RS = 1.0
 fun snapshot(): Spr = Spr(frame!!.copy(Bitmap.Config.ARGB_8888, false), W, H)
 private var bugBmp: Bitmap? = null
+private var dkShader: Shader? = null
+private var dkW = 0.0
+private var dkH = 0.0
 private var bugC: Canvas? = null
 
 private fun scrT(t: String, chars: String, p: Double): String {
@@ -352,7 +355,7 @@ private fun drawBG(g: G, cm: DoubleArray) {
         g.fillStyle = TINT[(hsh(tx shr 3, ty shr 3) and 3).toInt()]; g.fillRect(X, Y, 32.0, 32.0)
         if (k == 2 || k == 3) gl.add(longArrayOf(tx.toLong(), ty.toLong(), k.toLong(), h))
     }
-    if (S.pg == 2) { g.fillStyle = "rgba(60,0,100,.38)"; g.fillRect(x0 * 32.0, y0 * 32.0, (x1 - x0 + 1) * 32.0, (y1 - y0 + 1) * 32.0) }
+    if (S.pg == 2 || S.pg >= 4) { g.fillStyle = if (S.pg >= 4) "rgba(0,30,80,.42)" else "rgba(60,0,100,.38)"; g.fillRect(x0 * 32.0, y0 * 32.0, (x1 - x0 + 1) * 32.0, (y1 - y0 + 1) * 32.0) }
     g.lighter = true
     for (q in gl) {
         g.fillStyle = if (q[2] == 2L) "#ffaa3c" else "#5adcff"
@@ -460,7 +463,7 @@ fun draw(g: G) {
     }
     g.globalAlpha = 1.0
     if (S.dc > 0 && S.bg) {
-        val s = if (S.pg == 3 && ES["rival"] != null) ES["rival"]!! else ES["boss"]!!
+        val s = if (S.pg >= 3 && S.bo?.k == "rival" && ES["rival"] != null) ES["rival"]!! else ES["boss"]!!
         val w = s.n.w * 4; val h = s.n.h * 4; val u = 1 - S.dc / 2.4; val sh = h * (1 - .5 * u)
         g.save(); g.translate(rd(S.bx + (rnd() - .5) * 8 * (1 - u)), rd(S.by + 40)); g.globalAlpha = Math.max(0.0, 1 - u * u)
         g.drawImage(if (odd(S.dc * 14)) s.w else s.n, -w / 2, -sh, w, sh); g.restore(); g.globalAlpha = 1.0
@@ -579,6 +582,13 @@ fun draw(g: G) {
     }
     g.fillShader(vgShader!!, 0.0, 0.0, W, H)
     if (S.pg == 2 && FX >= 2) { g.fillStyle = "rgba(0,0,0,.12)"; var y = 0.0; while (y < H) { g.fillRect(0.0, y, W, 1.0); y += 4 } }
+    if (S.pg >= 4 && S.mut?.id == "dark") {
+        if (dkShader == null || dkW != W || dkH != H) {
+            dkShader = RadialGradient((W / 2).toFloat(), (H / 2).toFloat(), 250f, intArrayOf(Col.parse("rgba(0,0,0,0)"), Col.parse("rgba(0,0,0,.93)")), floatArrayOf(.4f, 1f), Shader.TileMode.CLAMP)
+            dkW = W; dkH = H
+        }
+        g.fillShader(dkShader!!, 0.0, 0.0, W, H)
+    }
     if (S.vg > 0) {
         val r0 = Math.min(W, H) * .3; val r1 = Math.max(W, H) * .7
         val a = (Math.min(.6, S.vg) * 255).toInt()
@@ -596,13 +606,21 @@ fun draw(g: G) {
     }
     if (S.dc > 0) { val a = Math.max(0.0, 1 - S.dc / .6); if (a > 0) { g.fillStyle = "#ffffff"; g.globalAlpha = a; g.fillRect(0.0, 0.0, W, H); g.globalAlpha = 1.0 } }
     drawHud(g)
-    if ((S.pg) < 2 && bo != null && !bo.dead && bo.k == "boss" && S.cin <= 0) drawBossBar(g, bo, "잔광 거수 — 심연의 수호자", if (bo.rg) "분노" else "", doubleArrayOf(.5), "#ff3b3b")
+    if ((S.pg < 2 || S.pg >= 4) && bo != null && !bo.dead && bo.k == "boss" && S.cin <= 0) drawBossBar(g, bo, if (S.pg >= 4) "심층 수호자 — " + S.fl + "층" else "잔광 거수 — 심연의 수호자", if (bo.rg) "분노" else "", doubleArrayOf(.5), "#ff3b3b")
+    val mu = S.mut
+    if (S.pg >= 4 && S.T < 1e8 && mu != null) {
+        val rem = Math.max(0.0, S.T - S.t); val w2 = Math.min(300.0, W - 24); val x0 = rd(W / 2 - w2 / 2)
+        g.fillStyle = "rgba(8,10,24,.6)"; g.fillRect(x0, 86.0, w2, 30.0); g.fillStyle = "#5fd8ff"; g.fillRect(x0, 110.0, w2 * Math.max(0.0, rem / S.T), 5.0)
+        g.font(13.0, true); g.textAlign = "center"; g.fillStyle = "#ffffff"
+        g.fillText(scr("심층 " + S.fl + "층 · " + mu.n + "  " + Math.ceil(rem).toInt() + "초"), W / 2, 104.0)
+        g.font(11.0, true); g.lineWidth = 3.0; g.strokeStyle = "#000"; g.strokeText(mu.d, W / 2, 130.0); g.fillStyle = "#9fe8ff"; g.fillText(mu.d, W / 2, 130.0); g.textAlign = "left"
+    }
     if (S.pg == 2) {
         val rem = Math.max(0.0, S.T - S.t); val w2 = Math.min(300.0, W - 24); val x0 = rd(W / 2 - w2 / 2)
         g.fillStyle = "rgba(8,10,24,.6)"; g.fillRect(x0, 86.0, w2, 30.0); g.fillStyle = "#ff3b6b"; g.fillRect(x0, 110.0, w2 * Math.max(0.0, rem / S.T), 5.0)
         g.font(13.0, true); g.textAlign = "center"; g.fillStyle = "#ffffff"
         g.fillText(scr("ERROR.exe — 버텨라!  " + fl(rem / 60).toInt() + ":" + two(fl(rem % 60).toInt()) + "  P" + (if (S.t < 60) 1 else if (S.t < 120) 2 else 3)), W / 2, 104.0); g.textAlign = "left"
-    } else if (S.pg == 3 && bo != null && !bo.dead && bo.wl != null) {
+    } else if (S.pg >= 3 && bo != null && !bo.dead && bo.wl != null) {
         val e = bo; val w2 = Math.min(340.0, W - 24); val x0 = rd(W / 2 - w2 / 2); val cc = CHR.find { it.id == e.cid } ?: CHR[0]; val cw = (w2 - 12) / 5
         g.fillStyle = "rgba(8,10,24,.65)"; g.fillRect(x0, 86.0, w2, 58.0)
         val r3 = Math.max(0.0, e.hp / e.mh); val t3 = Math.max(r3, Math.min(1.0, (e.tr ?: e.hp) / e.mh))

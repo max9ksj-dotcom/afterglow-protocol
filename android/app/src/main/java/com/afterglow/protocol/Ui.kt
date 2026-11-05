@@ -3,11 +3,15 @@ package com.afterglow.protocol
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.text.Html
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.StyleSpan
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
@@ -36,11 +40,18 @@ private fun ctx(): Context = host!!
 private fun dp(v: Double): Int = (v * ctx().resources.displayMetrics.density).toInt()
 private fun hx(c: String) = if (c.length == 4) "#" + c[1] + c[1] + c[2] + c[2] + c[3] + c[3] else c
 private fun fc(c: String, t: String) = "<font color='" + hx(c) + "'>" + t + "</font>"
-private fun html(s: String) = Html.fromHtml(s, Html.FROM_HTML_MODE_LEGACY)
+private fun html(s: String): CharSequence {
+    val t = SpannableStringBuilder(Html.fromHtml(s, Html.FROM_HTML_MODE_LEGACY))
+    for (o in t.getSpans(0, t.length, StyleSpan::class.java)) if (o.style == Typeface.BOLD) {
+        val a = t.getSpanStart(o); val b = t.getSpanEnd(o)
+        t.removeSpan(o); t.setSpan(BoldSpan(), a, b, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+    return t
+}
 private fun rTag(r: Rel) = if (r.pm) fc("#ffd24a", "영구") else fc("#8a93c8", "이번 판")
 
 private fun tv(s: String, size: Double, col: String = INK, center: Boolean = false): TextView = TextView(ctx()).apply {
-    text = html(s); setTextSize(TypedValue.COMPLEX_UNIT_DIP, size.toFloat()); setTextColor(Col.parse(col))
+    typeface = AgFont.regular; text = html(s); setTextSize(TypedValue.COMPLEX_UNIT_DIP, size.toFloat()); setTextColor(Col.parse(col))
     if (center) gravity = Gravity.CENTER
     setLineSpacing(0f, 1.25f)
 }
@@ -115,6 +126,7 @@ fun menu() {
         grid(WD.keys.filter(::UW).map { k -> val D = WD[k]!!; btn(fc(D.c, D.n), D.t) { startGame(k) } })
         btnRow(btn("게임 설명") { help("menu") })
         btnRow(btn("강화", "스킬트리 · 능력치 투자 · 유물 도감 — 특성 포인트 " + SV.p + " 보유") { upg() })
+        btnRow(btn("심층 연구소", if (SV.x.clr > 0) "과부하 등급 · 보스 러시 · 각성 · 도전 과제 · 기록" else "🔒 3페이지를 클리어하면 열립니다 · 도전 과제와 기록은 볼 수 있습니다") { lab() })
     }
 }
 fun selC(id: String) { if (SV.u.contains(id)) { SV.ch = id; sv(); menu() } }
@@ -129,6 +141,7 @@ fun help(bk: String) {
         H("성장", "경험치 구슬을 모으면 레벨업하고 강화를 하나 고릅니다. 무기 2개를 Lv5로 만들면 ★합체할 수 있습니다.<br>판이 끝나면 받는 특성 포인트로 스킬트리와 능력치 투자에서 영구 강화합니다.")
         H("유물", "엘리트 몬스터(금색 테두리)를 처치하면 유물 3개 중 하나를 고릅니다. 영구 유물 5종은 다음 판에도 남고, 나머지 10종은 한 판 동안만 유지됩니다.")
         H("몬스터", "기생충(처음부터) · 지렁이(1분) · 분열체(2분) · 돌격수(4분) · 폭탄귀(5분 30초) · 독침 사수(7분) · 갑각 거신(8분)")
+        H("생존 이후", "3페이지를 클리어하면 같은 빌드로 심층(PAGE 4)에 잠수할 수 있습니다. 층마다 규칙이 바뀌고 5층마다 수호자가 나타납니다.<br>심층 연구소에서 과부하 등급, 보스 러시, 각성(잔광 결정으로 영구 강화), 도전 과제, 기록을 볼 수 있습니다.")
         H("보스", "빨간 원과 선은 곧 공격이 온다는 경고입니다. 보스 체력은 화면 위에 표시되고, 보스가 화면 밖에 있으면 가장자리 화살표가 방향을 알려 줍니다.")
         btnRow(btn("← 돌아가기", click = back))
     }
@@ -259,9 +272,109 @@ fun uiEnd(w: Boolean, msg: String?) {
         p("이번 페이지 생존 " + t / 60 + "분 " + t % 60 + "초 · 총 처치 " + S.kills + " · 레벨 " + P.lv)
         p("획득 특성 포인트 +" + S.pr0 + (if (S.bonus) " (초보자 보너스 +3 포함)" else "") + " (보유 " + SV.p + ")", AMB)
         if (S.nu.isNotEmpty()) p("★ 새 캐릭터 해금: " + S.nu.joinToString(", "), "#ffd24a")
+        val x = SV.x
+        if (S.pg >= 4) p("심층 " + S.fl + "층 도달 (최고 " + x.fl + "층)", "#5fd8ff")
+        if (S.cr0 > 0) p("잔광 결정 +" + S.cr0 + " (보유 " + x.cr + ")", "#5fd8ff")
+        if (ocN() > 0) p("과부하 " + ocN() + "등급 · 포인트 ×" + String.format(java.util.Locale.US, "%.2f", ocP()), "#ff8866")
+        if (S.rush) p("보스 러시", "#ffd24a")
+        if (S.na.isNotEmpty()) p("★ 도전 과제 달성: " + S.na.joinToString(", "), "#ffd24a")
         p("빌드: " + S.ws.entries.joinToString(", ") { WD[it.key]!!.n + " Lv" + it.value.l })
+        if (w && S.pg == 3) btnRow(btn("심층으로 잠수 — PAGE 4", "같은 빌드로 끝없는 층에 도전합니다", AMB, "#2d2616") { deepStart() })
         btnRow(btn("같은 무기로 다시 시작") { restart() })
         btnRow(btn("메인 메뉴") { toMenu() })
+    }
+}
+fun uiDeep() { hideOv(); setBar(true); tbLab() }
+fun floorPick(pt: Int, cr: Int) {
+    S.run = false
+    val o = floorOpts().shuffled().take(3).map { q -> Opt(q.a, q.b) { q.f(); deepFloor() } }
+    S.cur = o
+    page("lvup", {}) {
+        h2("심층 " + S.fl + "층 돌파")
+        p("특성 포인트 +$pt · 잔광 결정 +$cr", AMB)
+        p("다음 층으로 가져갈 것을 고르세요")
+        o.forEachIndexed { i, x -> btnRow(btn(x.a, x.b) { pick(i) }) }
+    }
+}
+
+// ===== 심층 연구소 =====
+private fun LinearLayout.backLab() = btnRow(btn("← 연구소로 돌아가기") { lab() })
+private fun nf(v: Int) = String.format(java.util.Locale.US, "%,d", v)
+fun lab() {
+    setBar(false)
+    val x = SV.x; val lk = x.clr == 0; val n = ACH.count { x.ac.contains(it.id) }; val lt = "🔒 3페이지 클리어 시 해금"
+    page("lab", { menu() }) {
+        h2("심층 연구소")
+        p("특성 포인트 " + SV.p + " · 잔광 결정 " + x.cr, AMB)
+        btnRow(btn("과부하 등급", if (lk) lt else "현재 " + x.oc + "등급 · 최대 " + x.ocm + "등급", dis = lk, click = if (lk) null else ({ ocUI() })))
+        btnRow(btn("보스 러시", if (lk) lt else "강화된 상태로 시작해 보스전만 치릅니다", dis = lk, click = if (lk) null else ({ rushUI() })))
+        btnRow(btn("각성", if (lk) lt else "잔광 결정으로 영구 강화", dis = lk, click = if (lk) null else ({ awkUI() })))
+        btnRow(btn("도전 과제", n.toString() + " / " + ACH.size + " 달성") { achUI() })
+        btnRow(btn("기록실", "최고 기록과 복구 기록") { recUI() })
+        btnRow(btn("← 메인 메뉴") { menu() })
+    }
+}
+fun ocSet(v: Int) { if (v <= SV.x.ocm) { SV.x.oc = v; sv(); ocUI() } }
+fun ocUI() {
+    val x = SV.x
+    page("oc", { lab() }) {
+        h2("과부하 등급")
+        p("등급마다 적 체력 +35%, 적 속도 +3%, 받는 피해 +12%, 획득 포인트 +25%가 쌓입니다. 3페이지를 클리어하면 다음 등급이 열립니다.")
+        grid((0..OCN).map { i ->
+            val lk = i > x.ocm
+            btn(if (i > 0) i.toString() + "등급" else "끔", if (lk) "🔒 이전 등급 클리어" else if (i > 0) "포인트 ×" + String.format(java.util.Locale.US, "%.2f", 1 + .25 * i) else "기본 난이도",
+                if (x.oc == i) "#5fd8ff" else "#2c335c", dis = lk, click = if (lk) null else ({ ocSet(i) }))
+        })
+        backLab()
+    }
+}
+fun rushUI() {
+    page("rush", { lab() }) {
+        h2("보스 러시")
+        p("고른 무기와 다른 무기 2개를 Lv5로 들고 레벨 25로 시작합니다. 수호자 → 2페이지 → 3페이지를 이어서 치르고, 클리어하면 특성 포인트 15를 더 받습니다.")
+        grid(WD.keys.filter { UW(it) && !WD[it]!!.fz }.map { k -> val D = WD[k]!!; btn(fc(D.c, D.n), D.t) { rushStart(k) } })
+        backLab()
+    }
+}
+fun awkBuy(id: String) {
+    val a = AWK.find { it.id == id } ?: return
+    val x = SV.x; val l = x.aw[id] ?: 0
+    if (l >= a.max || x.cr < awkCost(a, l)) return
+    x.cr -= awkCost(a, l); x.aw[id] = l + 1; rcb(); sv(); awkUI()
+}
+fun awkUI() {
+    val x = SV.x
+    page("awk", { lab() }, 1000.0) {
+        h2("각성 (영구)")
+        p("잔광 결정 " + x.cr, "#5fd8ff")
+        p("심층 층을 돌파하면 잔광 결정을 얻습니다. 수호자 층은 3개, 보물 층은 2배입니다.")
+        for (a in AWK) {
+            val l = x.aw[a.id] ?: 0; val mx = l >= a.max; val c = awkCost(a, l); val po = !mx && x.cr < c
+            btnRow(btn(a.n + " Lv " + l + "/" + a.max, a.t + " " + awkFmt(a, a.per * l) + " · " + (if (mx) "최대 레벨" else "비용 결정 " + c + "개"), dis = mx || po, click = if (mx || po) null else ({ awkBuy(a.id) })))
+        }
+        backLab()
+    }
+}
+fun achUI() {
+    val x = SV.x
+    page("ach", { lab() }, 1000.0) {
+        h2("도전 과제")
+        for (a in ACH) {
+            val d = x.ac.contains(a.id)
+            btnRow(btn((if (d) "✔ " else "") + a.n, a.d + " · 보상 " + a.r + "p" + (if (d) "" else " · 진행 " + nf(Math.min(a.v, xv(a.k))) + "/" + nf(a.v)), if (d) "#5fd8ff" else "#2c335c", click = null))
+        }
+        backLab()
+    }
+}
+fun recUI() {
+    val x = SV.x
+    page("rec", { lab() }, 1000.0) {
+        h2("기록실")
+        p("3페이지 클리어 " + x.clr + "회 · 가장 빠른 클리어 " + (if (x.bt > 0) "" + x.bt / 60 + "분 " + x.bt % 60 + "초" else "없음"))
+        p("심층 최고 " + x.fl + "층 · 과부하 최고 " + x.occ + "등급 · 보스 러시 " + x.br + "회")
+        p("누적 처치 " + nf(x.tk) + " · 한 판 최다 처치 " + nf(SV.stMk) + " · 무기 합체 " + SV.stF + "회")
+        for (l in LOG) btnRow(if (x.fl >= l.f) btn(l.n, l.t, click = null) else btn("🔒 " + l.n, "심층 " + l.f + "층에 도달하면 복구됩니다", dis = true, click = null))
+        backLab()
     }
 }
 fun bgmPg() = if ((Sn?.pg ?: 1) >= 2) "boss" else "game"
@@ -283,7 +396,7 @@ fun restart() {
     val s = Sn
     val w = s?.w0
     if (s != null) { s.pz = false; s.ended = true }
-    if (w != null && UW(w)) startGame(w) else toMenu()
+    if (w != null && UW(w)) { if (s.rush) rushStart(w) else startGame(w) } else toMenu()
 }
 fun toMenu() {
     Sn?.let { it.pz = false; it.ended = true; it.run = false }

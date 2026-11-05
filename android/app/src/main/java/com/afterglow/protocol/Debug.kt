@@ -7,6 +7,11 @@ import android.os.Looper
 private val dh = Handler(Looper.getMainLooper())
 fun debugRun(mode: String) {
     if (mode == "lv") { startGame("pulse"); dh.postDelayed({ lvup() }, 2000); return }
+    if (mode.startsWith("ui")) {
+        val x = SV.x; x.clr = 2; x.ocm = 4; x.fl = 12; x.cr = 25; x.bt = 754; rcb()
+        when (mode) { "uioc" -> ocUI(); "uirush" -> rushUI(); "uiawk" -> awkUI(); "uiach" -> achUI(); "uirec" -> recUI(); else -> lab() }
+        return
+    }
     SV.n.add("u10"); rcb()
     startGame("pulse")
     P.mh = 1e7; P.hp = 1e7; S.sp = 3
@@ -15,6 +20,10 @@ fun debugRun(mode: String) {
         "glitch" -> { S.bg = true; dh.postDelayed({ startGlitch() }, 3000) }
         "p2" -> dh.postDelayed({ nextPage() }, 2000)
         "p3" -> dh.postDelayed({ S.pg = 2; startP3() }, 2000)
+        "deep" -> dh.postDelayed({ deepStart() }, 2000)
+        "deep5" -> dh.postDelayed({ deepStart(); S.fl = 3; deepFloor() }, 2000)
+        "deep10" -> dh.postDelayed({ deepStart(); S.fl = 8; deepFloor() }, 2000)
+        "rush" -> { rushStart("pulse"); P.mh = 1e7; P.hp = 1e7; S.sp = 3 }
     }
     var n = 0
     val r = object : Runnable {
@@ -28,7 +37,12 @@ fun debugRun(mode: String) {
                 joy = Joy(0.0, 0.0, cos(a), sin(a))
                 val b = s.bo
                 if (mode == "p3" && b != null && !b.dead && s.pg == 3) b.hp -= b.mh * .012
-                if (mode == "boss" && b != null && !b.dead && b.k == "boss") b.hp -= b.mh * .012
+                if ((mode == "boss" || mode == "rush") && b != null && !b.dead && b.k == "boss") b.hp -= b.mh * .012
+                if (mode.startsWith("deep") && s.pg >= 4) {
+                    if (b != null && !b.dead && s.fl % 5 == 0 && s.cin <= 0) { b.inv = false; hit(b, 1e9) }
+                    if (s.T < 1e8 && n % 30 == 0) s.t = s.T
+                    P.hp = P.mh
+                }
                 dh.postDelayed(this, 300)
             }
         }

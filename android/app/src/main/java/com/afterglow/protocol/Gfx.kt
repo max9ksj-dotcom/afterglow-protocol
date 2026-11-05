@@ -1,5 +1,6 @@
 package com.afterglow.protocol
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -12,6 +13,8 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
+import android.text.TextPaint
+import android.text.style.MetricAffectingSpan
 
 /** 색 문자열(#abc, #aabbcc, rgba(...))을 안드로이드 색으로 바꾼다. 같은 문자열은 저장해 두고 다시 쓴다. */
 object Col {
@@ -27,6 +30,23 @@ object Col {
             val a = if (p.size > 3) p[3] else 1.0
             Color.argb((a * 255).toInt().coerceIn(0, 255), p[0].toInt(), p[1].toInt(), p[2].toInt())
         }
+}
+
+/** 원본 게임의 글꼴 Noto Sans KR. 폰 기본 글꼴과 상관없이 어느 기기에서나 같은 글씨가 나온다. */
+object AgFont {
+    var regular: Typeface = Typeface.SANS_SERIF
+    var bold: Typeface = Typeface.DEFAULT_BOLD
+    fun load(c: Context) {
+        try {
+            regular = Typeface.createFromAsset(c.assets, "fonts/ag_regular.ttf")
+            bold = Typeface.createFromAsset(c.assets, "fonts/ag_bold.ttf")
+        } catch (e: Exception) { }
+    }
+}
+/** 글 중간의 굵은 부분에 진짜 굵은 글꼴을 쓴다 (안드로이드가 흉내 낸 굵기는 원본과 달라 보인다) */
+class BoldSpan : MetricAffectingSpan() {
+    override fun updateDrawState(p: TextPaint) { p.typeface = AgFont.bold }
+    override fun updateMeasureState(p: TextPaint) { p.typeface = AgFont.bold }
 }
 
 /** 도트 그림 한 장. w/h는 게임 좌표 크기, k는 그림 1칸당 실제 픽셀 수 */
@@ -75,8 +95,6 @@ class G(var c: Canvas) {
     private val path = Path()
     private val rf = RectF()
     private val rs = Rect()
-    private val bold = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-    private val normal = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
 
     private class St(val f: String, val s: String, val a: Double, val l: Double, val t: String, val li: Boolean, val fs: Double, val fb: Boolean)
     private val stack = ArrayList<St>()
@@ -141,7 +159,7 @@ class G(var c: Canvas) {
     fun line(x1: Double, y1: Double, x2: Double, y2: Double) = c.drawLine(x1.toFloat(), y1.toFloat(), x2.toFloat(), y2.toFloat(), strokeP())
 
     private fun textP(style: Paint.Style, col: String): Paint {
-        ap(tp, col); tp.style = style; tp.textSize = fontSize.toFloat(); tp.typeface = if (fontBold) bold else normal
+        ap(tp, col); tp.style = style; tp.textSize = fontSize.toFloat(); tp.typeface = if (fontBold) AgFont.bold else AgFont.regular
         tp.textAlign = when (textAlign) { "center" -> Paint.Align.CENTER; "right" -> Paint.Align.RIGHT; else -> Paint.Align.LEFT }
         return tp
     }
