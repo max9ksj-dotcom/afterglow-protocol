@@ -75,7 +75,7 @@ fun deepUpd(dt: Double) {
         for (i in 0 until n) spawn(pickE())
         S.sc = if (M == "swarm") .35 else if (bf) 1.6 else .55
     }
-    if (M == "drain") P.hp = Math.max(1.0, P.hp - P.mh * .012 * dt)
+    if (M == "drain" && P.hp > 0) P.hp = Math.max(1.0, P.hp - P.mh * .012 * dt)
     S.mk2 -= dt
     if (S.mk2 <= 0) {
         if (M == "hail") {
