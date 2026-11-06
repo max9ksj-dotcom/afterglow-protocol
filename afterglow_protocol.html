@@ -64,10 +64,10 @@ fz_blade:{n:'폭풍 칼날',d:26,i:1.4,r:150,c:'#fc6',t:'큰 칼날 4개가 회�
 const RI={cleave:'#ffd0a0',ricochet:'#f6f',pull:'#a8f',shards:'#8f8',chain:'#ff6',mark:'#9ef',blast:'#f86'},RN={blade:'cleave',rail:'ricochet',grav:'pull',orbit:'shards',arc:'chain',frost:'mark',mine:'blast'};
 function applyR(e,d,r,c){
  if(r=='cleave')aoe(e.x,e.y,42,d*.45,new Set([e]),c);
- else if(r=='ricochet')beam(Math.atan2(e.y-P.y,e.x-P.x),170,6,2,d*.5,c,new Set([e]),e.x,e.y);
+ else if(r=='ricochet')beam(Math.atan2(e.y-P.y,e.x-P.x),170,6,2+pl('pierce'),d*.5,c,new Set([e]),e.x,e.y);
  else if(r=='pull'){for(const o of S.en){if(o.dead||o.boss||o==e)continue;const dd=Math.hypot(e.x-o.x,e.y-o.y);if(dd<120&&dd>1){o.kx+=(e.x-o.x)/dd*320;o.ky+=(e.y-o.y)/dd*320}}burst(e.x,e.y,6,c,160,.3,2)}
  else if(r=='shards'){for(let i=0;i<3;i++)S.pr.push({x:e.x,y:e.y,a:Math.random()*6.283,d:d*.35,tg:null,l:.6,tn:0})}
- else if(r=='chain')chainFrom(e,d*.5,3);
+ else if(r=='chain')chainFrom(e,d*.5,3+pl('chain'));
  else if(r=='mark'){e.mk=.8;e.md=d*.6}
  else if(r=='blast')aoe(e.x,e.y,55,d*.6,new Set([e]),c)}
 const RC=(r,c)=>(e,d)=>applyR(e,d,r,c);
@@ -93,7 +93,7 @@ function aimAngle(){if(aimJ&&Math.hypot(aimJ.x,aimJ.y)>.25)return Math.atan2(aim
 function faceA(){return(P.fx||P.fy)?Math.atan2(P.fy||0,P.fx||0):0}
 function slash(a,r,d,ha,c,mk,cb){S.cc=c;for(const e of S.en)if(!e.dead){const dx=e.x-P.x,dy=e.y-P.y;if(Math.hypot(dx,dy)<r+e.r){let df=Math.abs(Math.atan2(dy,dx)-a);if(df>Math.PI)df=6.283-df;if(df<ha){hit(e,d);cb&&cb(e,d);if(mk){e.mk=.8;e.md=mk}}}}S.fx.push({t:'a',a,r,ha,l:.26,m:.26,c});burst(P.x+Math.cos(a)*r*.8,P.y+Math.sin(a)*r*.8,10,c,320,.28,3,a,1.8);shake(3);snd(220,.1,'triangle',.06)}
 function chainFrom(t,d,n){const vs=[t];let c=t;while(vs.length<=n){const nx=near(c.x,c.y,130,vs);if(!nx)break;bolt(c.x,c.y,nx.x,nx.y,'#ff6');hit(nx,d,'#ff6');vs.push(nx);c=nx}}
-const PD={over:['과충전',5,'피해 +6%'],acc:['가속 회로',4,'공격 주기 -5%'],lens:['확장 렌즈',4,'범위·사거리 +7%'],pierce:['관통 조율',3,'레일 관통 +1'],prec:['정밀 연산',4,'치명타 +4%p'],rec:['잔광 회수',3,'처치 시 체력 회복(1초 쿨)'],mob:['기동 보정',4,'이동 속도 +5%'],arm:['반응 장갑',3,'받는 피해 -8%'],chain:['연쇄 도체',3,'코일 연쇄 +1'],aim:['조준 보정',3,'유도 회전 +']};
+const PD={over:['과충전',5,'피해 +6%'],acc:['가속 회로',4,'공격 주기 -5%'],lens:['확장 렌즈',4,'범위·사거리 +7%'],pierce:['관통 조율',3,'레일 관통 +1 (합체 포함)'],prec:['정밀 연산',4,'치명타 +4%p'],rec:['잔광 회수',3,'처치 시 체력 회복(1초 쿨)'],mob:['기동 보정',4,'이동 속도 +5%'],arm:['반응 장갑',3,'받는 피해 -8%'],chain:['연쇄 도체',3,'코일 연쇄 +1 (합체 포함)'],aim:['조준 보정',3,'유도 회전 + (합체 포함)']};
 let S=null,P,keys={},joy=null,last=0;
 const pl=k=>S.ps[k]||0;
 function stat(){const rx=relX();return{dm:1.15+.06*pl('over')+tb('dm')+chm('dm')+up('dm')+rx.dm+(S.db||0),iv:1-.05*pl('acc')-tb('iv')-rx.iv,ar:1+.07*pl('lens')+tb('ar')+chm('ar')+up('ar')+rx.ar,pc:pl('pierce'),cr:.05+.04*pl('prec')+tb('cr')+chm('cr')+up('cr'),cd:1.5+tb('cd'),bd:1+tb('bd'),mv:1+.05*pl('mob')+tb('mv')+chm('mv')+up('mv')+rx.mv+(S.dv||0),am:Math.max(.3,1-.08*pl('arm')-tb('am')-chm('am')-(SV.st.g<3?.2:0)-(S.da||0)-rx.am-(P.hp<P.mh*.3?up('lh'):0))*(S.shd>0?.5:1)*dmgMul(),ch:pl('chain')}}
@@ -384,8 +384,8 @@ else if(k=='blade'){const dd=Math.hypot(t.x-P.x,t.y-P.y),lg0=Math.min(34,Math.ma
  else if(k=='frost'){hit(t,16*ds);t.mk=.8;t.md=12*ds;ln(P.x,P.y,t.x,t.y,D.c,2,.15);burst(t.x,t.y,5,'#cff',120,.3,3);snd(1000,.08,'sine',.04)}
  else if(k=='fz_slash')slash(a,ra,55*ds,1.3,D.c,30*ds)
  else if(k=='fz_core')S.fx.push({t:'p',x:t.x,y:t.y,r:70*m.ar,l:.35,m:.35,d:110*ds})
- else if(k=='fz_storm'){[-.2,.2].forEach(o=>S.pr.push({x:P.x,y:P.y,a:a+o,d:36*ds,tg:(auto||pl('aim')>0)?t:null,l:2,tn:4,ch:1}));burst(P.x,P.y,6,D.c,200,.2,2,a,.8);snd(700,.06,'triangle',.04)}
- else if(k=='fz_rail'){shake(3);snd(500,.3,'sawtooth',.06);const ex=new Set();beam(a,ra,10,5,70*ds,D.c,ex);[-.3,.3].forEach(o=>beam(a+o,ra*.85,7,3,30*ds,D.c,ex))}
+ else if(k=='fz_storm'){[-.2,.2].forEach(o=>S.pr.push({x:P.x,y:P.y,a:a+o,d:36*ds,tg:(auto||pl('aim')>0)?t:null,l:2,tn:4+pl('aim')*.5,ch:1}));burst(P.x,P.y,6,D.c,200,.2,2,a,.8);snd(700,.06,'triangle',.04)}
+ else if(k=='fz_rail'){shake(3);snd(500,.3,'sawtooth',.06);const ex=new Set(),b=pl('aim')>0?Math.atan2(t.y-P.y,t.x-P.x):a;S.la=b;beam(b,ra,10,5+m.pc,70*ds,D.c,ex);[-.3,.3].forEach(o=>beam(b+o,ra*.85,7,3+m.pc,30*ds,D.c,ex))}
  else if(k=='fz_blade')slash(a,ra*.9,40*ds,1.6,D.c,0)
  else if(D.gd)gfire(D,w,ds,m,ra,t,a)
  else if(k=='mine'){if(S.mn.length>=8)S.mn.shift();S.mn.push({x:t.x,y:t.y,ar:.7,d:60*ds,r:60*m.ar})}
@@ -473,7 +473,7 @@ function upd(dt){
  S.ep=S.ep.filter(q=>q.l>0);
  for(const p of S.pr){p.l-=dt;if(p.tg&&!p.tg.dead){let df=Math.atan2(p.tg.y-p.y,p.tg.x-p.x)-p.a;while(df>Math.PI)df-=6.283;while(df<-Math.PI)df+=6.283;p.a+=Math.max(-p.tn*dt,Math.min(p.tn*dt,df))}
   p.x+=Math.cos(p.a)*360*dt;p.y+=Math.sin(p.a)*360*dt;p.tr=p.tr||[];p.tr.push([p.x,p.y]);if(p.tr.length>9)p.tr.shift();
-  for(const e of S.en)if(!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<e.r+5){hit(e,p.d,p.ch?'#ff6':'#6cf');if(p.ch)chainFrom(e,p.d*.6,3);if(p.cb)p.cb(e,p.d);p.l=0;break}}
+  for(const e of S.en)if(!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<e.r+5){hit(e,p.d,p.ch?'#ff6':'#6cf');if(p.ch)chainFrom(e,p.d*.6,3+pl('chain'));if(p.cb)p.cb(e,p.d);p.l=0;break}}
  S.pr=S.pr.filter(p=>p.l>0);
  for(const f of S.fx){f.l-=dt;if(f.t=='p'){for(const e of S.en)if(!e.dead&&!e.boss){const d=Math.hypot(f.x-e.x,f.y-e.y);if(d<110&&d>2){e.x+=(f.x-e.x)/d*250*dt;e.y+=(f.y-e.y)/d*250*dt}}if(f.l<=0)aoe(f.x,f.y,f.r*1.2,f.d||48,null,'#a8f')}}
  S.fx=S.fx.filter(f=>f.l>0);

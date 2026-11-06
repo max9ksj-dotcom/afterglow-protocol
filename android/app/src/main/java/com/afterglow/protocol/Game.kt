@@ -142,7 +142,7 @@ val RI = mapOf("cleave" to "#ffd0a0", "ricochet" to "#f6f", "pull" to "#a8f", "s
 fun applyR(e: En, d: Double, r: String, c: String) {
     when (r) {
         "cleave" -> aoe(e.x, e.y, 42.0, d * .45, hashSetOf(e), c)
-        "ricochet" -> beam(atan2(e.y - P.y, e.x - P.x), 170.0, 6.0, 2, d * .5, c, hashSetOf(e), e.x, e.y)
+        "ricochet" -> beam(atan2(e.y - P.y, e.x - P.x), 170.0, 6.0, 2 + pl("pierce").toInt(), d * .5, c, hashSetOf(e), e.x, e.y)
         "pull" -> {
             S.en.each { o ->
                 if (!(o.dead || o.boss || o === e)) {
@@ -153,7 +153,7 @@ fun applyR(e: En, d: Double, r: String, c: String) {
             burst(e.x, e.y, 6.0, c, 160.0, .3, 2.0)
         }
         "shards" -> for (i in 0 until 3) S.pr.add(Prj(e.x, e.y, rnd() * TAU, d * .35, null, .6, 0.0))
-        "chain" -> chainFrom(e, d * .5, 3)
+        "chain" -> chainFrom(e, d * .5, 3 + pl("chain").toInt())
         "mark" -> { e.mk = .8; e.md = d * .6 }
         "blast" -> aoe(e.x, e.y, 55.0, d * .6, hashSetOf(e), c)
     }
@@ -381,14 +381,16 @@ fun fire(k: String, w: Wp): Boolean {
         k == "fz_slash" -> slash(a, ra, 55 * ds, 1.3, D.c, 30 * ds)
         k == "fz_core" -> fxP(t.x, t.y, 70 * m.ar, 110 * ds)
         k == "fz_storm" -> {
-            for (o in doubleArrayOf(-.2, .2)) S.pr.add(Prj(P.x, P.y, a + o, 36 * ds, tg, 2.0, 4.0, null, true))
+            for (o in doubleArrayOf(-.2, .2)) S.pr.add(Prj(P.x, P.y, a + o, 36 * ds, tg, 2.0, 4 + pl("aim") * .5, null, true))
             burst(P.x, P.y, 6.0, D.c, 200.0, .2, 2.0, a, .8); snd(700.0, .06, "triangle", .04)
         }
         k == "fz_rail" -> {
             shake(3.0); snd(500.0, .3, "sawtooth", .06)
             val ex = HashSet<En>()
-            beam(a, ra, 10.0, 5, 70 * ds, D.c, ex)
-            for (o in doubleArrayOf(-.3, .3)) beam(a + o, ra * .85, 7.0, 3, 30 * ds, D.c, ex)
+            val b = if (pl("aim") > 0) atan2(t.y - P.y, t.x - P.x) else a
+            S.la = b
+            beam(b, ra, 10.0, 5 + m.pc.toInt(), 70 * ds, D.c, ex)
+            for (o in doubleArrayOf(-.3, .3)) beam(b + o, ra * .85, 7.0, 3 + m.pc.toInt(), 30 * ds, D.c, ex)
         }
         k == "fz_blade" -> slash(a, ra * .9, 40 * ds, 1.6, D.c, 0.0)
         D.gd != null -> gfire(D, ds, m, ra, t, a)
@@ -799,7 +801,7 @@ fun upd(dt0: Double) {
             val e = S.en[i]
             if (!e.dead && hyp(e.x - p.x, e.y - p.y) < e.r + 5) {
                 hit(e, p.d, if (p.ch) "#ff6" else "#6cf")
-                if (p.ch) chainFrom(e, p.d * .6, 3)
+                if (p.ch) chainFrom(e, p.d * .6, 3 + pl("chain").toInt())
                 p.cb?.invoke(e, p.d)
                 p.l = 0.0
                 break

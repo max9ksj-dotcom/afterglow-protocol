@@ -13,6 +13,7 @@ fun debugRun(mode: String) {
         return
     }
     if (mode.startsWith("fit")) { fitRun(mode); return }
+    if (mode == "fuse") { fuseRun(); return }
     SV.n.add("u10"); rcb()
     startGame("pulse")
     P.mh = 1e7; P.hp = 1e7; S.sp = 3
@@ -49,6 +50,39 @@ fun debugRun(mode: String) {
         }
     }
     dh.postDelayed(r, 500)
+}
+
+/** 합체 무기가 재료 무기의 증강을 받는지 점검한다. 결과는 logcat의 AGFUSE에 나온다 */
+private fun fuseRun() {
+    SV.n.remove("u10"); rcb()
+    startGame("pulse"); P.mh = 1e9; P.hp = 1e9
+    dh.postDelayed({
+        val s = S
+        fun line(): List<En> {
+            s.en.clear(); s.pr.clear(); s.q.clear(); s.ws.clear()
+            return (0 until 10).map { i -> spawn("tank", P.x + 30 + i * 20, P.y)!!.also { it.hp = 1e9; it.mh = 1e9 } }
+        }
+        fun cnt(l: List<En>) = l.count { it.hp < 1e9 }
+        fun ps(k: String, v: Int) { s.ps.clear(); if (v > 0) s.ps[k] = v }
+        fun aimAt(a: Double) { aimJ = Joy(0.0, 0.0, cos(a), sin(a)) }
+        aimAt(0.0)
+        fun rail(v: Int): Int { ps("pierce", v); val l = line(); fire("fz_rail", Wp(1, 0.0)); return cnt(l) }
+        fun rico(v: Int): Int { ps("pierce", v); val l = line(); applyR(l[0], 10.0, "ricochet", "#fff"); return cnt(l.drop(1)) }
+        fun chain(v: Int): Int { ps("chain", v); val l = line(); applyR(l[0], 10.0, "chain", "#fff"); return cnt(l.drop(1)) }
+        fun tn(v: Int): Double { ps("aim", v); line(); fire("fz_storm", Wp(1, 0.0)); return s.pr.last().tn }
+        fun storm(v: Int): Int { ps("chain", v); val l = line(); fire("fz_storm", Wp(1, 0.0)); repeat(40) { P.hp = 1e9; upd(.016) }; return cnt(l) }
+        fun lock(v: Int): Double { aimAt(.5); ps("aim", v); line(); fire("fz_rail", Wp(1, 0.0)); aimAt(0.0); return s.la }
+        android.util.Log.i("AGFUSE", "rail " + rail(0) + "->" + rail(3) + " rico " + rico(0) + "->" + rico(3) + " chain " + chain(0) + "->" + chain(3) +
+            " tn " + tn(0) + "->" + tn(2) + " storm " + storm(0) + "->" + storm(3) + " lock " + lock(0) + "->" + lock(1))
+        var n = 0
+        for ((k, D) in WD) if (D.fz) {
+            s.ps.clear(); s.ps["pierce"] = 3; s.ps["chain"] = 3; s.ps["aim"] = 3
+            line(); s.ws[k] = Wp(1, 0.0); fire(k, s.ws[k]!!)
+            repeat(30) { P.hp = 1e9; upd(.016) }
+            n++
+        }
+        android.util.Log.i("AGFUSE", "smoke ok " + n)
+    }, 1500)
 }
 
 /** 화면 크기 점검용: 글씨와 버튼이 가장 많이 나오는 상태를 만든다 */
