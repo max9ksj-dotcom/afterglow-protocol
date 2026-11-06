@@ -55,7 +55,10 @@ private fun tv(s: String, size: Double, col: String = INK, center: Boolean = fal
     if (center) gravity = Gravity.CENTER
     setLineSpacing(0f, 1.25f)
 }
-private fun LinearLayout.h1(s: String) = addView(tv("<b>$s</b>", 34.0, AMB, true))
+private fun LinearLayout.h1(s: String) {
+    val m = ctx().resources.displayMetrics
+    addView(tv("<b>$s</b>", Math.min(34.0, (m.widthPixels / m.density - 24.0) / s.length), AMB, true))
+}
 private fun LinearLayout.h2(s: String, c: String = INK) = addView(tv("<b>$s</b>", 22.0, c, true), lp(b = 10.0))
 private fun LinearLayout.p(s: String, c: String = DIM, center: Boolean = true) = addView(tv(s, 13.0, c, center), lp(t = 8.0, b = 8.0))
 private fun lp(t: Double = 0.0, b: Double = 0.0) = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(t); bottomMargin = dp(b) }
@@ -75,11 +78,11 @@ private fun LinearLayout.btnRow(b: View) = addView(b, lp(t = 8.0))
 private fun LinearLayout.grid(items: List<View>) {
     var i = 0
     while (i < items.size) {
-        val row = LinearLayout(ctx()).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false }
+        val row = LinearLayout(ctx()).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false; weightSum = 2f }
         for (j in 0 until 2) {
             val l = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
             if (j == 1) l.leftMargin = dp(8.0)
-            if (i + j < items.size) row.addView(items[i + j], l) else row.addView(View(ctx()), LinearLayout.LayoutParams(0, 0, 1f).apply { leftMargin = l.leftMargin })
+            if (i + j < items.size) row.addView(items[i + j], if (i + 1 == items.size) LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) else l)
         }
         addView(row, lp(t = 8.0))
         i += 2
@@ -105,8 +108,18 @@ private fun page(name: String, back: (() -> Unit)?, maxW: Double = 560.0, build:
     val wrap = FrameLayout(h)
     val w = Math.min(h.resources.displayMetrics.widthPixels, dp(maxW))
     wrap.addView(box, FrameLayout.LayoutParams(w, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER))
+    pageBox = box; pageMax = maxW
+    pageFit()
     sc.addView(wrap, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     h.ov.addView(sc, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+}
+private var pageBox: View? = null
+private var pageMax = 560.0
+/** 화면을 돌리거나 접었다 폈을 때 메뉴 폭을 다시 맞춘다 */
+fun pageFit() {
+    val b = pageBox ?: return; val h = host ?: return
+    val w = Math.min(h.resources.displayMetrics.widthPixels - h.ov.paddingLeft - h.ov.paddingRight, dp(pageMax))
+    if (b.layoutParams.width != w) { b.layoutParams.width = w; b.requestLayout() }
 }
 private fun hideOv() { val h = host!!; h.ov.visibility = View.GONE; h.ov.removeAllViews(); screen = ""; backAct = null }
 private fun setBar(on: Boolean) { host!!.bar.visibility = if (on) View.VISIBLE else View.GONE }
@@ -413,6 +426,7 @@ fun tbLab() {
     val h = host ?: return
     h.hudBtn.text = "능력치 " + listOf("간단", "자세히", "최소")[SV.hud]
     h.volBtn.text = listOf("소리 끔", "소리 낮음", "소리 보통")[SV.vol]
+    h.fitBar()
 }
 
 // ===== 스킬트리 =====

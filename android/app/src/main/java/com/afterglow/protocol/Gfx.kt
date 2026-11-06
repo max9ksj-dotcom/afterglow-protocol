@@ -164,6 +164,13 @@ class G(var c: Canvas) {
         return tp
     }
     fun fillText(s: String, x: Double, y: Double) = c.drawText(s, x.toFloat(), y.toFloat(), textP(Paint.Style.FILL, fillStyle))
+    fun measure(s: String): Double = textP(Paint.Style.FILL, fillStyle).measureText(s).toDouble()
+    /** 글이 폭을 넘으면 글꼴 크기를 줄인다 */
+    fun fit(s: String, mx: Double, size: Double, b: Boolean = false, min: Double = 9.0) {
+        font(size, b)
+        val w = measure(s)
+        if (w > mx) font(Math.max(min, Math.floor(size * mx / w)), b)
+    }
     fun strokeText(s: String, x: Double, y: Double) {
         val p = textP(Paint.Style.STROKE, strokeStyle)
         p.strokeWidth = lineWidth.toFloat(); p.strokeJoin = Paint.Join.ROUND

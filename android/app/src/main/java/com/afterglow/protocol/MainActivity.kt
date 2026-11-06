@@ -28,7 +28,7 @@ var host: MainActivity? = null
 /** 잔광 프로토콜 앱 본체. 웹뷰 없이 Kotlin으로 직접 그린다. */
 class MainActivity : Activity() {
     lateinit var ov: FrameLayout
-    lateinit var bar: LinearLayout
+    lateinit var bar: FlowBar
     lateinit var hudBtn: TextView
     lateinit var volBtn: TextView
     lateinit var spBtn: TextView
@@ -65,20 +65,36 @@ class MainActivity : Activity() {
         ov.isClickable = true
 
         val d = resources.displayMetrics.density
-        bar = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.END; visibility = View.GONE }
-        val r1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.END }
-        val r2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.END }
-        r1.addView(barBtn("⏸") { pauseT() })
-        hudBtn = barBtn("능력치") { hudT() }; r1.addView(hudBtn)
-        volBtn = barBtn("소리") { volT() }; r1.addView(volBtn)
-        spBtn = barBtn("배속 x1") { b -> Sn?.let { it.sp = it.sp % 3 + 1; b.text = "배속 x" + it.sp } }; r2.addView(spBtn)
-        fxBtn = barBtn("이펙트 표준") { b -> FX = (FX + 1) % 4; b.text = "이펙트 " + listOf("끔", "약", "표준", "강")[FX] }; r2.addView(fxBtn)
-        bar.addView(r1); bar.addView(r2)
+        bar = FlowBar(this).apply { visibility = View.GONE }
+        bar.addView(barBtn("⏸") { pauseT() })
+        hudBtn = barBtn("능력치") { hudT() }; bar.addView(hudBtn)
+        volBtn = barBtn("소리") { volT() }; bar.addView(volBtn)
+        spBtn = barBtn("배속 x1") { b -> Sn?.let { it.sp = it.sp % 3 + 1; b.text = "배속 x" + it.sp } }; bar.addView(spBtn)
+        fxBtn = barBtn("이펙트 표준") { b -> FX = (FX + 1) % 4; b.text = "이펙트 " + listOf("끔", "약", "표준", "강")[FX] }; bar.addView(fxBtn)
         root.addView(bar, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.END).apply { rightMargin = (6 * d).toInt(); topMargin = (2 * d).toInt() })
+        // 카메라 구멍·노치를 피한다
+        root.setOnApplyWindowInsetsListener { _, ins ->
+            if (Build.VERSION.SDK_INT >= 28) {
+                val c = ins.displayCutout
+                val l = c?.safeInsetLeft ?: 0; val t = c?.safeInsetTop ?: 0; val r = c?.safeInsetRight ?: 0; val b = c?.safeInsetBottom ?: 0
+                SAL = l / d.toDouble(); SAT = t / d.toDouble(); SAR = r / d.toDouble(); SAB = b / d.toDouble()
+                ov.setPadding(l, t, r, b)
+                (bar.layoutParams as FrameLayout.LayoutParams).apply { topMargin = t + (2 * d).toInt(); rightMargin = r + (6 * d).toInt() }
+                fitBar(); pageFit()
+            }
+            ins
+        }
         setContentView(root)
         hideBars()
         menu()
         if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) intent.getStringExtra("jump")?.let { debugRun(it) }
+    }
+
+    /** 왼쪽 위 정보창을 피해 버튼을 줄바꿈한다 */
+    fun fitBar() {
+        val d = resources.displayMetrics.density
+        bar.maxW = ((W - hudBox() - 14 - SAL - SAR) * d).toInt()
+        bar.requestLayout()
     }
 
     /** 상태 표시줄·내비게이션 바를 숨긴 전체 화면 */
@@ -122,6 +138,42 @@ class MainActivity : Activity() {
     override fun onDestroy() { if (host === this) host = null; super.onDestroy() }
 }
 
+/** 폭이 모자라면 다음 줄로 넘기고 오른쪽에 붙이는 버튼 묶음 */
+class FlowBar(c: Context) : ViewGroup(c) {
+    var maxW = 0
+    private val gap = (4 * resources.displayMetrics.density).toInt()
+    private fun limit(ws: Int): Int { val a = MeasureSpec.getSize(ws); return if (maxW > 0) Math.min(maxW, a) else a }
+    private var aw = 0
+    override fun onMeasure(ws: Int, hs: Int) {
+        aw = limit(ws)
+        val u = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+        var x = 0; var y = gap; var rh = 0; var mw = 0
+        for (i in 0 until childCount) {
+            val v = getChildAt(i); v.measure(u, u)
+            val w = v.measuredWidth + gap
+            if (x > 0 && x + w > aw) { y += rh + gap; x = 0; rh = 0 }
+            x += w; rh = Math.max(rh, v.measuredHeight); mw = Math.max(mw, x)
+        }
+        setMeasuredDimension(mw, y + rh)
+    }
+    override fun onLayout(ch: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        var i = 0; var y = gap
+        while (i < childCount) {
+            var j = i; var x = 0; var rh = 0
+            while (j < childCount) {
+                val w = getChildAt(j).measuredWidth + gap
+                if (x > 0 && x + w > aw) break
+                x += w; rh = Math.max(rh, getChildAt(j).measuredHeight); j++
+            }
+            var px = (r - l) - x + gap
+            for (k in i until j) { val v = getChildAt(k); v.layout(px, y, px + v.measuredWidth, y + v.measuredHeight); px += v.measuredWidth + gap }
+            y += rh + gap; i = j
+        }
+        val den = resources.displayMetrics.density
+        TBW = (r - l) / den.toDouble(); TBH = (b - t) / den.toDouble()
+    }
+}
+
 /** 게임 화면. 원본 웹판처럼 화면 크기의 작은 버퍼에 그린 뒤 각지게 늘려 도트 느낌을 낸다(글씨 포함). */
 class GameView(c: Context) : View(c), Choreographer.FrameCallback {
     private val den = resources.displayMetrics.density.toDouble()
@@ -147,6 +199,7 @@ class GameView(c: Context) : View(c), Choreographer.FrameCallback {
         cv = c
         g = G(c)
         dst.set(0, 0, w, h)
+        post { host?.fitBar(); pageFit() }
     }
     override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) { setup(w, h) }
 

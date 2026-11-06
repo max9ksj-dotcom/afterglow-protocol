@@ -130,6 +130,27 @@ fun hsh(a: Int, b: Int): Long {
 
 // ===== 화면 버퍼 =====
 var frame: Bitmap? = null
+// 화면 폭에 따라 위쪽 정보가 버튼·카메라 구멍에 가려지지 않게 자리를 정한다 (단위 dp)
+var TBW = 0.0
+var TBH = 0.0
+var SAT = 0.0
+var SAL = 0.0
+var SAR = 0.0
+var SAB = 0.0
+private var PY = 86.0
+private var PH = 0.0
+private var CL = false
+fun hudBox() = Math.min(if (SV.hud == 1) 208.0 else 168.0, Math.max(150.0, W * .5))
+private fun topLay() {
+    val bo = S.bo; val hm = SV.hud; val w2 = Math.min(340.0, W - 24); val x0 = (W - w2) / 2
+    val hb = 6 + (if (hm == 1) 112.0 else if (hm == 0) 66.0 else 50.0); val tbb = TBH + 6
+    CL = x0 < 6 + hudBox() + 4 || x0 + w2 > W - TBW - 8 - SAL - SAR
+    PY = if (CL) Math.max(86.0, Math.max(hb, tbb) + 4) else 86.0
+    PH = if ((S.pg < 2 || S.pg >= 4) && bo != null && !bo.dead && bo.k == "boss" && S.cin <= 0) 30.0
+    else if (S.pg >= 4 && S.T < 1e8 && S.mut != null) 48.0
+    else if (S.pg == 2) 30.0
+    else if (S.pg >= 3 && bo != null && !bo.dead && bo.wl != null) 58.0 else 0.0
+}
 const val RS = 1.0
 fun snapshot(): Spr = Spr(frame!!.copy(Bitmap.Config.ARGB_8888, false), W, H)
 private var bugBmp: Bitmap? = null
@@ -226,7 +247,7 @@ private fun drawTf(g: G) {
         val fs = rd(Math.min(W, H * 1.4) * .12); val m = Math.max(0.0, Math.min(1.0, (t - 1.2) / .9))
         val a1 = ES["hboss"]!!.n; val cs = S.rcs
         g.globalAlpha = a; g.textAlign = "center"; g.font(fs, true); g.fillStyle = "#10152a"; g.strokeStyle = "#ffffff"; g.lineWidth = 6.0
-        g.strokeText("PAGE 3", W / 2, H * .4); g.fillText("PAGE 3", W / 2, H * .4); g.font(rd(fs * .4)); g.fillText("버그를 걷어내고 원래의 세계로 — ERROR_CLONE", W / 2, H * .4 + fs * .7)
+        g.strokeText("PAGE 3", W / 2, H * .4); g.fillText("PAGE 3", W / 2, H * .4); g.fit("버그를 걷어내고 원래의 세계로 — ERROR_CLONE", W - 16, rd(fs * .4), false, 10.0); g.fillText("버그를 걷어내고 원래의 세계로 — ERROR_CLONE", W / 2, H * .4 + fs * .7)
         g.globalAlpha = a * (1 - m); g.drawImage(a1, W / 2 - a1.w * 2, H * .64 - a1.h * 2, a1.w * 4, a1.h * 4)
         if (cs != null) { g.globalAlpha = a * m; g.drawImage(cs, W / 2 - cs.w * 2.5, H * .64 - cs.h * 2.5, cs.w * 5, cs.h * 5) }
     }
@@ -605,7 +626,10 @@ fun draw(g: G) {
         }
     }
     if (S.dc > 0) { val a = Math.max(0.0, 1 - S.dc / .6); if (a > 0) { g.fillStyle = "#ffffff"; g.globalAlpha = a; g.fillRect(0.0, 0.0, W, H); g.globalAlpha = 1.0 } }
+    g.save(); g.translate(SAL, SAT)
+    topLay()
     drawHud(g)
+    g.save(); g.translate(0.0, PY - 86)
     if ((S.pg < 2 || S.pg >= 4) && bo != null && !bo.dead && bo.k == "boss" && S.cin <= 0) drawBossBar(g, bo, if (S.pg >= 4) "심층 수호자 — " + S.fl + "층" else "잔광 거수 — 심연의 수호자", if (bo.rg) "분노" else "", doubleArrayOf(.5), "#ff3b3b")
     val mu = S.mut
     if (S.pg >= 4 && S.T < 1e8 && mu != null) {
@@ -635,7 +659,9 @@ fun draw(g: G) {
             g.drawImage(cs, rd(x + (cw - 3) / 2 - cs.w * sc2 / 2), rd(130 - cs.h * sc2 / 2), rd(cs.w * sc2), rd(cs.h * sc2))
         }
     }
-    if (S.mt > 0) { g.font(26.0, true); g.fillStyle = "#f55"; g.textAlign = "center"; g.fillText(S.msg, W / 2, 80.0); g.textAlign = "left" }
+    g.restore()
+    if (S.mt > 0) { g.fit(S.msg, W - 16 - SAL - SAR, 26.0, true, 13.0); g.fillStyle = "#f55"; g.textAlign = "center"; g.fillText(S.msg, W / 2 - SAL, if (CL) Math.max(PY + PH + 28 + (if (S.cb >= 3) 20 else 0), if (S.rl.values.any { it > 0 }) PY + PH + 56 else 0.0) else 80.0); g.textAlign = "left" }
+    g.restore()
     drawSticks(g)
     if (S.sw > 0) {
         g.fillStyle = "rgba(60,255,255,.09)"; g.fillRect(0.0, 0.0, W, H); g.font(16.0, true); g.textAlign = "center"; g.fillStyle = "#99ffff"; g.fillText("입력 반전", W / 2, H * .3); g.textAlign = "left"
@@ -648,22 +674,23 @@ private fun pc(v: Double) = Math.round(v * 100).toString() + "%"
 private fun drawHud(g: G) {
     val m = stat(); val hm = SV.hud; val t = fl(S.t).toInt()
     val tt = "" + t / 60 + ":" + two(t % 60) + (if (S.T > 1e8) "" else " / " + fl(S.T / 60).toInt() + ":" + two((S.T % 60).toInt()))
-    val bw = if (hm == 1) 196.0 else 156.0
+    val bw = hudBox() - 12
     g.fillStyle = "rgba(8,10,24,.55)"; g.fillRect(6.0, 6.0, bw + 12, if (hm == 1) 112.0 else if (hm == 0) 66.0 else 50.0)
     g.fillStyle = "#2a1018"; g.fillRect(12.0, 12.0, bw, 9.0); g.fillStyle = "#f55"; g.fillRect(12.0, 12.0, bw * (P.hp / P.mh).coerceIn(0.0, 1.0), 9.0)
     g.fillStyle = "#10202a"; g.fillRect(12.0, 24.0, bw, 5.0); g.fillStyle = "#5fd8ff"; g.fillRect(12.0, 24.0, bw * (P.xp / P.nx).coerceIn(0.0, 1.0), 5.0)
-    g.font(11.0, true); g.fillStyle = "#e8ecff"
-    g.fillText(scr("HP " + Math.ceil(P.hp).toInt() + "/" + Math.round(P.mh) + "  Lv" + P.lv + (if (S.pg > 1) "  PAGE " + S.pg else "")), 12.0, 42.0)
-    g.font(11.0); g.fillStyle = "#aab2e0"; g.fillText(scr(tt + "  처치 " + S.kills + (if (tb("aa") > 0) "" else " · 수동조준")), 12.0, 55.0); g.font(10.0, true)
+    val hl1 = "HP " + Math.ceil(P.hp).toInt() + "/" + Math.round(P.mh) + "  Lv" + P.lv + (if (S.pg > 1) "  PAGE " + S.pg else "")
+    val hl2 = tt + "  처치 " + S.kills + (if (tb("aa") > 0) "" else " · 수동조준")
+    g.fit(hl1, bw, 11.0, true); g.fillStyle = "#e8ecff"; g.fillText(scr(hl1), 12.0, 42.0)
+    g.fit(hl2, bw, 11.0); g.fillStyle = "#aab2e0"; g.fillText(scr(hl2), 12.0, 55.0); g.font(10.0, true)
     if (hm == 0) {
         val i1 = listOf(Triple("공격", "+" + pc(m.dm - 1), "#ffb347"), Triple("공속", "+" + pc(1 / m.iv - 1), "#ffd24a"), Triple("치명", pc(m.cr), "#f6f"))
-        i1.forEachIndexed { i, (a, b, c) -> val x = 12.0 + i * 52; g.fillStyle = "#8a92b8"; g.fillText(a, x, 67.0); g.fillStyle = c; g.fillText(b, x + 22, 67.0) }
+        i1.forEachIndexed { i, (a, b, c) -> val x = 12.0 + i * bw / 3; g.fillStyle = "#8a92b8"; g.fillText(a, x, 67.0); g.fillStyle = c; g.fillText(b, x + 22, 67.0) }
     } else if (hm == 1) {
         val i2 = listOf(Triple("공격", "+" + pc(m.dm - 1), "#ffb347"), Triple("공속", "+" + pc(1 / m.iv - 1), "#ffd24a"), Triple("이동", "+" + pc(m.mv - 1), "#8f8"), Triple("치명", pc(m.cr), "#f6f"),
             Triple("치피", "×" + String.format(java.util.Locale.US, "%.2f", m.cd), "#fb8"), Triple("범위", "+" + pc(m.ar - 1), "#9ef"), Triple("방어", pc(1 - m.am), "#8af"), Triple("경험", "+" + pc(tb("xp")), "#5fd8ff"))
-        i2.forEachIndexed { i, (a, b, c) -> val x = 12.0 + (i and 1) * 98; val y = 68.0 + (i shr 1) * 14; g.fillStyle = "#8a92b8"; g.fillText(a, x, y); g.fillStyle = c; g.fillText(b, x + 30, y) }
+        i2.forEachIndexed { i, (a, b, c) -> val x = 12.0 + (i and 1) * bw / 2; val y = 68.0 + (i shr 1) * 14; g.fillStyle = "#8a92b8"; g.fillText(a, x, y); g.fillStyle = c; g.fillText(b, x + 30, y) }
     }
-    val ks = S.ws.keys.toList(); val cw = 40.0; val x0 = rd(W / 2 - ks.size * cw / 2); val y0 = H - 38
+    val ks = S.ws.keys.toList(); val cw = 40.0; val x0 = rd(W / 2 - SAL - ks.size * cw / 2); val y0 = H - 38 - SAT - SAB
     ks.forEachIndexed { i, k ->
         val x = x0 + i * cw; val fz = WD[k]!!.fz; val c = wsp(k); val sc = if (c.w > 10) 1.6 else 2.0
         g.fillStyle = "rgba(8,10,24,.6)"; g.fillRect(x, y0, cw - 4, 28.0); g.strokeStyle = if (fz) "#ffd24a" else "#2c335c"; g.lineWidth = if (fz) 2.0 else 1.0; g.strokeRect(x + .5, y0 + .5, cw - 5, 27.0)
@@ -672,10 +699,10 @@ private fun drawHud(g: G) {
     }
     if (hm != 2) {
         val ps = S.ps.entries.joinToString("  ") { PD[it.key]!!.n + it.value }
-        if (ps.isNotEmpty()) { g.font(10.0); g.fillStyle = "rgba(170,178,224,.85)"; g.textAlign = "center"; g.fillText(ps, W / 2, y0 - 6); g.textAlign = "left" }
+        if (ps.isNotEmpty()) { g.fit(ps, W - 12 - SAL - SAR, 10.0, false, 7.0); g.fillStyle = "rgba(170,178,224,.85)"; g.textAlign = "center"; g.fillText(ps, W / 2 - SAL, y0 - 6); g.textAlign = "left" }
     }
     S.rl.entries.filter { it.value > 0 }.forEachIndexed { i, en ->
-        val r = RM[en.key]!!; val x = 8.0 + i * 28; val y = if (hm == 1) 124.0 else if (hm == 0) 80.0 else 60.0
+        val r = RM[en.key]!!; val x = 8.0 + i * 28; val y = Math.max(if (hm == 1) 124.0 else if (hm == 0) 80.0 else 60.0, if (CL && PH > 0) PY + PH + 6 else 0.0)
         g.fillStyle = "rgba(8,10,24,.65)"; g.fillRect(x, y, 26.0, 26.0); g.strokeStyle = RGC[r.g]; g.lineWidth = 2.0; g.strokeRect(x + 1, y + 1, 24.0, 24.0)
         g.drawImage(ric(r.ic), x + 3, y + 3, 20.0, 20.0)
         if (en.value > 1) { g.font(10.0, true); g.fillStyle = "#ffffff"; g.fillText(en.value.toString(), x + 16, y + 24) }
@@ -684,7 +711,7 @@ private fun drawHud(g: G) {
         g.font(14.0, true); g.textAlign = "center"; g.lineWidth = 3.0; g.strokeStyle = "#000"; g.globalAlpha = Math.max(.3, Math.min(1.0, S.ct))
         val ct = "COMBO x" + S.cb + "  경험치 +" + Math.min(50, S.cb * 2) + "%"
         val bo = S.bo
-        val cby = if (S.pg == 3) 160.0 else if (S.pg == 2 || (bo != null && !bo.dead && bo.k == "boss")) 134.0 else 112.0
+        val cby = if (CL) PY + PH + 16 else if (S.pg == 3) 160.0 else if (S.pg == 2 || (bo != null && !bo.dead && bo.k == "boss")) 134.0 else 112.0
         g.strokeText(ct, W / 2, cby); g.fillStyle = "#ffd24a"; g.fillText(ct, W / 2, cby); g.globalAlpha = 1.0; g.textAlign = "left"
     }
 }

@@ -10,7 +10,7 @@ canvas{display:block;position:fixed;inset:0;image-rendering:pixelated}
 #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,10,22,.88);padding:12px;overflow:auto}
 #ov.h{display:none}
 .box{max-width:560px;width:100%;text-align:center}
-h1{font-size:34px;font-weight:900;color:var(--amb);letter-spacing:-.5px}
+h1{font-size:34px;font-weight:900;color:var(--amb);letter-spacing:-.5px;word-break:keep-all}
 h2{font-size:22px;margin-bottom:10px}
 p{color:var(--dim);font-size:13px;line-height:1.6;margin:8px 0}
 .gr{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
@@ -598,7 +598,7 @@ function toRival(){bank(1);const c=CHR.find(x=>x.id==S.rc)||CHR[0],bs=['pulse','
  const h=HSC[c.id];ES.rival={n:h[0].n,n2:h[2].n,w:h[0].w,w2:h[2].w,f:h[0].n,f2:h[2].n};
  const e=spawn('rival',P.x,P.y-330);e.boss=1;e.hp=e.mh=P.mh*50*eHp();e.wl=bs.concat(fz);e.cid=c.id;e.col='#ff8ad8';e.cd=2;S.bo=e;S.msg='ERROR_CLONE 출현: '+c.n;S.mt=4}
 function drawTf(){const t=S.tf;g.save();g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';const fl=t<.7?t/.7:t<2.4?1:Math.max(0,1-(t-2.4)/1.2);g.globalAlpha=Math.min(.94,fl*.94);g.fillStyle='#ffffff';g.fillRect(0,0,W,H);
- if(t>.5&&t<3.6){const a=Math.min(1,(t-.5)/.4)*(t>3?Math.max(0,1-(t-3)/.6):1),fs=Math.round(Math.min(W,H*1.4)*.12),m=Math.max(0,Math.min(1,(t-1.2)/.9)),a1=ES.hboss.n,cs=S.rcs;g.globalAlpha=a;g.textAlign='center';g.font='bold '+fs+'px sans-serif';g.fillStyle='#10152a';g.strokeStyle='#ffffff';g.lineWidth=6;g.strokeText('PAGE 3',W/2,H*.4);g.fillText('PAGE 3',W/2,H*.4);g.font=Math.round(fs*.4)+'px sans-serif';g.fillText('버그를 걷어내고 원래의 세계로 — ERROR_CLONE',W/2,H*.4+fs*.7);
+ if(t>.5&&t<3.6){const a=Math.min(1,(t-.5)/.4)*(t>3?Math.max(0,1-(t-3)/.6):1),fs=Math.round(Math.min(W,H*1.4)*.12),m=Math.max(0,Math.min(1,(t-1.2)/.9)),a1=ES.hboss.n,cs=S.rcs;g.globalAlpha=a;g.textAlign='center';g.font='bold '+fs+'px sans-serif';g.fillStyle='#10152a';g.strokeStyle='#ffffff';g.lineWidth=6;g.strokeText('PAGE 3',W/2,H*.4);g.fillText('PAGE 3',W/2,H*.4);fitF('버그를 걷어내고 원래의 세계로 — ERROR_CLONE',W-16,Math.round(fs*.4),0,10);g.fillText('버그를 걷어내고 원래의 세계로 — ERROR_CLONE',W/2,H*.4+fs*.7);
   g.imageSmoothingEnabled=false;if(a1){g.globalAlpha=a*(1-m);g.drawImage(a1,W/2-a1.width*2,H*.64-a1.height*2,a1.width*4,a1.height*4)}if(cs){g.globalAlpha=a*m;g.drawImage(cs,W/2-cs.width*2.5,H*.64-cs.height*2.5,cs.width*5,cs.height*5)}}
  g.restore()}
 function nextPage(){S.pg=2;bgmSet('boss');S.t=0;S.T=180;S.boss=1;S.bg=0;S.bk=0;S.dc=0;S.cin=0;S.cl=0;S.en=[];S.pr=[];S.ep=[];S.mn=[];S.fx=[];S.pt=[];S.q=[];S.gm=[];S.os=[];S.sc=0;S.rn=0;S.nk=0;S.cb=0;S.lt=-9;S.snap=null;S.gl=0;S.pull=null;P.slow=0;P.hp=Math.max(P.hp,P.mh*.6);P.inv=2.5;
@@ -624,6 +624,14 @@ function restart(){const w=S&&S.w0;if(S){S.pz=0;S.ended=1}if(w&&UW(w)){if(S&&S.r
 function toMenu(){if(S){S.pz=0;S.ended=1;S.run=0}bgmSet(null);menu()}
 function hudT(){SV.hud=((SV.hud|0)+1)%3;sv();tbLab()}
 function volT(){SV.vol=((SV.vol|0)+1)%3;sv();tbLab();if(BGC&&S&&S.run&&!S.pz)bgmSet(BGC);snd(440,.12,'sine',.05)}
+// 화면 폭에 따라 위쪽 정보가 버튼에 가려지지 않게 자리를 정한다
+let TBW=0,TBH=0,PY=86,TPH=0,CL=false,TBF=0;
+const hudBox=()=>Math.min(SV.hud==1?208:168,Math.max(150,W*.5));
+function fitF(s,mx,sz,b,mn){const p=b?'bold ':'';g.font=p+sz+'px sans-serif';const m=g.measureText(s),w=m&&m.width;if(w>mx)g.font=p+Math.max(mn||9,Math.floor(sz*mx/w))+'px sans-serif'}
+function tbFit(){const e=$('tb');if(e&&e.style)e.style.maxWidth=Math.min(330,W-hudBox()-14)+'px'}
+function topLay(){if(!(TBF++%20)){tbFit();const r=$('tb').getBoundingClientRect(),a=r&&r.width,b=r&&r.bottom;TBW=Number.isFinite(a)?a:0;TBH=Number.isFinite(b)?b-6:0}
+ const hm=SV.hud|0,bo=S.bo,w2=Math.min(340,W-24),x0=(W-w2)/2,hb=6+(hm==1?112:hm==0?66:50),tbb=TBH+6;CL=x0<6+hudBox()+4||x0+w2>W-TBW-8;PY=CL?Math.max(86,Math.max(hb,tbb)+4):86;
+ TPH=((S.pg||1)<2||S.pg>=4)&&bo&&!bo.dead&&bo.k=='boss'&&!(S.cin>0)?30:S.pg>=4&&S.T<1e8&&S.mut?48:S.pg==2?30:S.pg>=3&&bo&&!bo.dead&&bo.wl?58:0}
 function tbLab(){$('hb').textContent='능력치 '+['간단','자세히','최소'][SV.hud|0];$('vb').textContent=['소리 끔','소리 낮음','소리 보통'][SV.vol==null?2:SV.vol]}
 function mkS(rows,pal,ex){const k=document.createElement('canvas');k.width=rows[0].length;k.height=rows.length;const x=k.getContext('2d');rows.forEach((r,y)=>{for(let i=0;i<r.length;i++){const c=pal[r[i]];if(c){x.fillStyle=c;x.fillRect(i,y,1,1)}}});(ex||[]).forEach(([i,y,c])=>{x.fillStyle=c;x.fillRect(i,y,1,1)});return k}
 function tintC(c,col,al){const k=document.createElement('canvas');k.width=c.width;k.height=c.height;const x=k.getContext('2d');x.drawImage(c,0,0);x.globalCompositeOperation='source-atop';x.globalAlpha=al;x.fillStyle=col;x.fillRect(0,0,k.width,k.height);return k}
@@ -758,25 +766,27 @@ function draw(){
  if(S.cin>0){const w=Math.min(1,(2.6-S.cin)/.4,S.cin/.4),bh=H*.11*w;g.fillStyle='rgba(0,0,0,'+.3*w+')';g.fillRect(0,0,W,H);g.fillStyle='#000';g.fillRect(0,0,W,bh);g.fillRect(0,H-bh,W,bh);
   if(S.cin<1.4){g.globalAlpha=Math.min(1,(1.4-S.cin)/.3,S.cin/.4);g.textAlign='center';g.font='bold 44px sans-serif';g.lineWidth=6;g.strokeStyle='#000';const ty=H*.78;g.strokeText('잔광 거수',W/2,ty);g.fillStyle='#ff5a5a';g.fillText('잔광 거수',W/2,ty);g.font='16px sans-serif';g.fillStyle='#ffd0d0';g.fillText('— 심연의 수호자 —',W/2,ty+28);g.textAlign='left';g.globalAlpha=1}}
  if(S.dc>0){const a=Math.max(0,1-S.dc/.6);if(a>0){g.fillStyle='rgba(255,255,255,'+a+')';g.fillRect(0,0,W,H)}}
-{const m=stat(),hm=SV.hud|0,t=Math.floor(S.t),tt=Math.floor(t/60)+':'+String(t%60).padStart(2,'0')+(S.T>1e8?'':' / '+Math.floor(S.T/60)+':'+String(S.T%60).padStart(2,'0')),bw=hm==1?196:156,pc=v=>Math.round(v*100)+'%';
+{const m=stat(),hm=SV.hud|0,t=Math.floor(S.t),tt=Math.floor(t/60)+':'+String(t%60).padStart(2,'0')+(S.T>1e8?'':' / '+Math.floor(S.T/60)+':'+String(S.T%60).padStart(2,'0')),bw=hudBox()-12,pc=v=>Math.round(v*100)+'%';
  const i1=[['공격','+'+pc(m.dm-1),'#ffb347'],['공속','+'+pc(1/m.iv-1),'#ffd24a'],['치명',pc(m.cr),'#f6f']],i2=[['공격','+'+pc(m.dm-1),'#ffb347'],['공속','+'+pc(1/m.iv-1),'#ffd24a'],['이동','+'+pc(m.mv-1),'#8f8'],['치명',pc(m.cr),'#f6f'],['치피','×'+m.cd.toFixed(2),'#fb8'],['범위','+'+pc(m.ar-1),'#9ef'],['방어',pc(1-m.am),'#8af'],['경험','+'+pc(tb('xp')),'#5fd8ff']];
- g.fillStyle='rgba(8,10,24,.55)';g.fillRect(6,6,bw+12,hm==1?112:hm==0?66:50);
+ topLay();g.fillStyle='rgba(8,10,24,.55)';g.fillRect(6,6,bw+12,hm==1?112:hm==0?66:50);
  g.fillStyle='#2a1018';g.fillRect(12,12,bw,9);g.fillStyle='#f55';g.fillRect(12,12,bw*Math.max(0,Math.min(1,P.hp/P.mh)),9);
  g.fillStyle='#10202a';g.fillRect(12,24,bw,5);g.fillStyle='#5fd8ff';g.fillRect(12,24,bw*Math.max(0,Math.min(1,P.xp/P.nx)),5);
- g.font='bold 11px sans-serif';g.fillStyle='#e8ecff';g.fillText(scr('HP '+Math.ceil(P.hp)+'/'+P.mh+'  Lv'+P.lv+(S.pg>1?'  PAGE '+S.pg:'')),12,42);g.font='11px sans-serif';g.fillStyle='#aab2e0';g.fillText(scr(tt+'  처치 '+S.kills+(tb('aa')>0?'':' · 수동조준')),12,55);g.font='bold 10px sans-serif';
- if(hm==0)i1.forEach(([a,b,c],i)=>{const x=12+i*52;g.fillStyle='#8a92b8';g.fillText(a,x,67);g.fillStyle=c;g.fillText(b,x+22,67)});
- else if(hm==1)i2.forEach(([a,b,c],i)=>{const x=12+(i&1)*98,y=68+(i>>1)*14;g.fillStyle='#8a92b8';g.fillText(a,x,y);g.fillStyle=c;g.fillText(b,x+30,y)});
+ const hl1='HP '+Math.ceil(P.hp)+'/'+P.mh+'  Lv'+P.lv+(S.pg>1?'  PAGE '+S.pg:''),hl2=tt+'  처치 '+S.kills+(tb('aa')>0?'':' · 수동조준');fitF(hl1,bw,11,1);g.fillStyle='#e8ecff';g.fillText(scr(hl1),12,42);fitF(hl2,bw,11);g.fillStyle='#aab2e0';g.fillText(scr(hl2),12,55);g.font='bold 10px sans-serif';
+ if(hm==0)i1.forEach(([a,b,c],i)=>{const x=12+i*bw/3;g.fillStyle='#8a92b8';g.fillText(a,x,67);g.fillStyle=c;g.fillText(b,x+22,67)});
+ else if(hm==1)i2.forEach(([a,b,c],i)=>{const x=12+(i&1)*bw/2,y=68+(i>>1)*14;g.fillStyle='#8a92b8';g.fillText(a,x,y);g.fillStyle=c;g.fillText(b,x+30,y)});
  const ks=Object.keys(S.ws),cw=40,x0=Math.round(W/2-ks.length*cw/2),y0=H-38;
  ks.forEach((k,i)=>{const x=x0+i*cw,fz=WD[k].fz,c=wsp(k),sc=c.width>10?1.6:2;g.fillStyle='rgba(8,10,24,.6)';g.fillRect(x,y0,cw-4,28);g.strokeStyle=fz?'#ffd24a':'#2c335c';g.lineWidth=fz?2:1;g.strokeRect(x+.5,y0+.5,cw-5,27);g.drawImage(c,Math.round(x+(cw-4)/2-c.width*sc/2),Math.round(y0+10-c.height*sc/2),Math.round(c.width*sc),Math.round(c.height*sc));g.font='bold 9px sans-serif';g.fillStyle='#fff';g.fillText('Lv'+S.ws[k].l,x+4,y0+25)});
- if(hm!=2){const ps=Object.keys(S.ps).map(k=>PD[k][0]+S.ps[k]).join('  ');if(ps){g.font='10px sans-serif';g.fillStyle='rgba(170,178,224,.85)';g.textAlign='center';g.fillText(ps,W/2,y0-6);g.textAlign='left'}}
- {const rk=Object.keys(S.rl||{}).filter(k=>S.rl[k]);rk.forEach((k,i)=>{const r=RM[k],x=8+i*28,y=hm==1?124:hm==0?80:60;g.fillStyle='rgba(8,10,24,.65)';g.fillRect(x,y,26,26);g.strokeStyle=RG.c[r.g];g.lineWidth=2;g.strokeRect(x+1,y+1,24,24);g.drawImage(ric(r.ic),x+3,y+3,20,20);if(S.rl[k]>1){g.font='bold 10px sans-serif';g.fillStyle='#ffffff';g.fillText(S.rl[k],x+16,y+24)}})}
- if((S.cb||0)>=3){g.font='bold 14px sans-serif';g.textAlign='center';g.lineWidth=3;g.strokeStyle='#000';g.globalAlpha=Math.max(.3,Math.min(1,S.ct));const ct='COMBO x'+S.cb+'  경험치 +'+Math.min(50,S.cb*2)+'%';const cby=S.pg==3?160:(S.pg==2||(S.bo&&!S.bo.dead&&S.bo.k=='boss'))?134:112;g.strokeText(ct,W/2,cby);g.fillStyle='#ffd24a';g.fillText(ct,W/2,cby);g.globalAlpha=1;g.textAlign='left'}}
+ if(hm!=2){const ps=Object.keys(S.ps).map(k=>PD[k][0]+S.ps[k]).join('  ');if(ps){fitF(ps,W-12,10,0,7);g.fillStyle='rgba(170,178,224,.85)';g.textAlign='center';g.fillText(ps,W/2,y0-6);g.textAlign='left'}}
+ {const rk=Object.keys(S.rl||{}).filter(k=>S.rl[k]);rk.forEach((k,i)=>{const r=RM[k],x=8+i*28,y=Math.max(hm==1?124:hm==0?80:60,CL&&TPH?PY+TPH+6:0);g.fillStyle='rgba(8,10,24,.65)';g.fillRect(x,y,26,26);g.strokeStyle=RG.c[r.g];g.lineWidth=2;g.strokeRect(x+1,y+1,24,24);g.drawImage(ric(r.ic),x+3,y+3,20,20);if(S.rl[k]>1){g.font='bold 10px sans-serif';g.fillStyle='#ffffff';g.fillText(S.rl[k],x+16,y+24)}})}
+ if((S.cb||0)>=3){g.font='bold 14px sans-serif';g.textAlign='center';g.lineWidth=3;g.strokeStyle='#000';g.globalAlpha=Math.max(.3,Math.min(1,S.ct));const ct='COMBO x'+S.cb+'  경험치 +'+Math.min(50,S.cb*2)+'%';const cby=CL?PY+TPH+16:S.pg==3?160:(S.pg==2||(S.bo&&!S.bo.dead&&S.bo.k=='boss'))?134:112;g.strokeText(ct,W/2,cby);g.fillStyle='#ffd24a';g.fillText(ct,W/2,cby);g.globalAlpha=1;g.textAlign='left'}}
+ g.save();g.translate(0,PY-86);
  if(((S.pg||1)<2||S.pg>=4)&&S.bo&&!S.bo.dead&&S.bo.k=='boss'&&!(S.cin>0))drawBossBar(S.bo,S.pg>=4?'심층 수호자 — '+S.fl+'층':'잔광 거수 — 심연의 수호자',S.bo.rg?'분노':'',[.5],'#ff3b3b');
  if(S.pg>=4&&S.T<1e8&&S.mut){const rem=Math.max(0,S.T-S.t),w2=Math.min(300,W-24),x0=Math.round(W/2-w2/2);g.fillStyle='rgba(8,10,24,.6)';g.fillRect(x0,86,w2,30);g.fillStyle='#5fd8ff';g.fillRect(x0,110,w2*Math.max(0,rem/S.T),5);g.font='bold 13px sans-serif';g.textAlign='center';g.fillStyle='#ffffff';g.fillText(scr('심층 '+S.fl+'층 · '+S.mut.n+'  '+Math.ceil(rem)+'초'),W/2,104);g.font='bold 11px sans-serif';g.lineWidth=3;g.strokeStyle='#000';g.strokeText(S.mut.d,W/2,130);g.fillStyle='#9fe8ff';g.fillText(S.mut.d,W/2,130);g.textAlign='left'}
  if(S.pg==2){const rem=Math.max(0,S.T-S.t),w2=Math.min(300,W-24),x0=Math.round(W/2-w2/2);g.fillStyle='rgba(8,10,24,.6)';g.fillRect(x0,86,w2,30);g.fillStyle='#ff3b6b';g.fillRect(x0,110,w2*Math.max(0,rem/S.T),5);g.font='bold 13px sans-serif';g.textAlign='center';g.fillStyle='#ffffff';g.fillText(scr('ERROR.exe — 버텨라!  '+Math.floor(rem/60)+':'+String(Math.floor(rem%60)).padStart(2,'0')+'  P'+(S.t<60?1:S.t<120?2:3)),W/2,104);g.textAlign='left'}
  else if(S.pg>=3&&S.bo&&!S.bo.dead&&S.bo.wl){const e=S.bo,w2=Math.min(340,W-24),x0=Math.round(W/2-w2/2),cc=CHR.find(x=>x.id==e.cid)||CHR[0],cw=(w2-12)/5;g.fillStyle='rgba(8,10,24,.65)';g.fillRect(x0,86,w2,58);const r3=Math.max(0,e.hp/e.mh),t3=Math.max(r3,Math.min(1,(e.tr==null?e.hp:e.tr)/e.mh));g.fillStyle='#2a1018';g.fillRect(x0+6,104,w2-12,9);g.fillStyle='#ffffff';g.globalAlpha=.75;g.fillRect(x0+6,104,(w2-12)*t3,9);g.globalAlpha=1;g.fillStyle=e.inv?'#9aa0c0':'#ff3b6b';g.fillRect(x0+6,104,(w2-12)*r3,9);g.fillStyle='#000';for(const tk of[.7,.4,.15])g.fillRect(Math.round(x0+6+(w2-12)*tk)-1,102,2,13);g.textAlign='right';g.fillStyle='#c8cce8';g.fillText(Math.ceil(r3*100)+'%',x0+w2-6,99);g.textAlign='left';g.font='bold 12px sans-serif';g.textAlign='left';g.fillStyle='#ffd0ee';g.fillText(scr('ERROR_CLONE: '+cc.n+'  PHASE '+((e.ph||0)+1)),x0+6,99);
   e.wl.forEach((k,i)=>{const cs=wsp(k),sc2=cs.width>10?1.4:1.8,x=x0+6+i*cw;g.strokeStyle=WD[k].fz?'#ffd24a':'#2c335c';g.lineWidth=1;g.strokeRect(x+.5,119.5,cw-3,22);g.drawImage(cs,Math.round(x+(cw-3)/2-cs.width*sc2/2),Math.round(130-cs.height*sc2/2),Math.round(cs.width*sc2),Math.round(cs.height*sc2))})}
- if(S.mt>0){g.font='bold 26px sans-serif';g.fillStyle='#f55';g.textAlign='center';g.fillText(S.msg,W/2,80);g.textAlign='left'}
+ g.restore();
+ if(S.mt>0){fitF(S.msg,W-16,26,1,13);g.fillStyle='#f55';g.textAlign='center';g.fillText(S.msg,W/2,CL?Math.max(PY+TPH+28+((S.cb||0)>=3?20:0),Object.keys(S.rl||{}).some(k=>S.rl[k])?PY+TPH+56:0):80);g.textAlign='left'}
  drawSticks();if(S.sw>0){g.fillStyle='rgba(60,255,255,.09)';g.fillRect(0,0,W,H);g.font='bold 16px sans-serif';g.textAlign='center';g.fillStyle='#99ffff';g.fillText('입력 반전',W/2,H*.3);g.textAlign='left'}if(S.pg>=2&&S.bt>0&&FX>0)drawBug();if(S.tf>0)drawTf();}
 function loop(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;if(S&&S.gl>0){glUpd(dt)}else if(S&&S.tf>0){tfUpd(dt)}else if(S&&S.run&&!S.pz){if(S.cin>0||S.dc>0)cinUpd(dt);else{const sb=dt>.034?2:1;for(let i=0;i<S.sp*sb;i++)if(S.run&&!(S.cin>0)&&!(S.dc>0))upd(dt/sb)}}draw();requestAnimationFrame(loop)}
 onkeydown=e=>{if(e.key=='Escape'||e.key=='p'||e.key=='P'){if(!e.repeat)pauseT();return}keys[e.key.length==1?e.key.toLowerCase():e.key]=1};document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&S.run&&!S.pz&&!S.ended)pauseT()});onkeyup=e=>keys[e.key.length==1?e.key.toLowerCase():e.key]=0;
