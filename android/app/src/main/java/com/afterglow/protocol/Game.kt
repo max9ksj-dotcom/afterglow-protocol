@@ -20,6 +20,7 @@ class En(val k: String) {
     var c = k; var col = "#ffffff"
     var x = 0.0; var y = 0.0; var hp = 0.0; var mh = 0.0; var sp = 0.0; var r = 0.0; var xp = 0.0; var sc = 0.0
     var boss = false; var fl = 0.0; var mk = 0.0; var md = 0.0; var oc = 0.0; var sl = 0.0; var ph = 0.0; var st = 0; var cd = 0.0
+    var stn = 0.0; var sti = 0.0
     var kx = 0.0; var ky = 0.0; var es = 0.0; var dead = false; var inv = false; var el = false; var sq = 0.0; var ang = 0.0
     var tl = 0.0; var dx = 0.0; var dy = 0.0; var tr: Double? = null; var rg = false; var na = 0; var lp: String? = null; var sm = 0.0
     var php: Int? = null; var dmf = 1.0; var sm2 = 0.0; var tp: Double? = null; var cast = 0; var cw: String? = null
@@ -47,8 +48,9 @@ class Fx(val t: Char, var l: Double, val m: Double) {
     var txt = ""; var v = 0L; var cr = false; var d = 0.0; var s: List<Char> = emptyList()
 }
 class Opt(val a: String, val b: String, val ev: Boolean = false, val f: () -> Unit)
-class Orb(val w: Wp, val n: Int, val r: Double, val d: Double, val c: String, val hr: Double, val sz: Double, val cb: CB? = null)
-class Stat(val dm: Double, val iv: Double, val ar: Double, val pc: Double, val cr: Double, val cd: Double, val bd: Double, val mv: Double, val am: Double, val ch: Double)
+class Orb(val w: Wp, var n: Int, var r: Double, val d: Double, val c: String, val hr: Double, val sz: Double, val cb: CB? = null, val k: String = "orbit") { var iv = .35 }
+class Rp(val x: ArrayList<En>, val o: Double)
+class Stat(val dm: Double, val iv: Double, var ar: Double, val pc: Double, val cr: Double, val cd: Double, val bd: Double, val mv: Double, val am: Double, val ch: Double) { var bw = 1.0 }
 class RelX(val dm: Double, val ar: Double, val iv: Double, val am: Double, val mv: Double, val mg: Double)
 class Joy(val ox: Double, val oy: Double, var x: Double = 0.0, var y: Double = 0.0)
 
@@ -79,6 +81,10 @@ var aimJ: Joy? = null
 const val SR = 52.0
 
 fun pl(k: String): Double = (S.ps[k] ?: 0).toDouble()
+// 무기별 증강 표. 합체 무기는 재료 무기 둘 중 하나라도 해당되면 효과를 받는다
+val AGW = mapOf("rld" to listOf("pulse", "blade", "rail", "orbit", "arc", "frost"), "dur" to listOf("arc", "frost"), "prj" to listOf("pulse", "blade", "rail", "orbit", "frost"), "rng" to listOf("blade", "rail", "orbit", "frost"))
+fun wOk(k: String, p: String): Boolean { val W = AGW[p]!!; return k in W || WD[k]!!.req.any { it in W } }
+fun wa(k: String, p: String): Int { val l = S.ps[p] ?: 0; return if (l > 0 && wOk(k, p)) l else 0 }
 fun rlc(id: String): Int = Sn?.rl?.get(id) ?: 0
 
 fun relX(): RelX {
@@ -153,7 +159,7 @@ fun applyR(e: En, d: Double, r: String, c: String) {
             burst(e.x, e.y, 6.0, c, 160.0, .3, 2.0)
         }
         "shards" -> for (i in 0 until 3) S.pr.add(Prj(e.x, e.y, rnd() * TAU, d * .35, null, .6, 0.0))
-        "chain" -> chainFrom(e, d * .5, 3 + pl("chain").toInt())
+        "chain" -> { stun(e); chainFrom(e, d * .5, 3 + pl("chain").toInt()) }
         "mark" -> { e.mk = .8; e.md = d * .6 }
         "blast" -> aoe(e.x, e.y, 55.0, d * .6, hashSetOf(e), c)
     }
@@ -168,14 +174,14 @@ fun gfire(D: Wd, ds: Double, m: Stat, ra: Double, t: En, a: Double) {
             burst(P.x, P.y, 5.0, c, 180.0, .2, 2.0, a, .7); snd(650.0, .06, "triangle", .04)
         }
         "blade" -> slash(a, ra, d, 1.1, c, 0.0, cb)
-        "rail" -> { shake(3.0); snd(480.0, .25, "sawtooth", .06); beam(a, ra, 10.0, 4 + m.pc.toInt(), d, c, null, null, null, cb) }
+        "rail" -> { shake(3.0); snd(480.0, .25, "sawtooth", .06); beam(a, ra, 10.0 * m.bw, 4 + m.pc.toInt(), d, c, null, null, null, cb) }
         "grav" -> { fxO(t.x, t.y, 75.0, c, .14); S.q.add(Q(.12) { aoe(t.x, t.y, 62 * m.ar, d, null, c, cb) }) }
         "arc" -> {
             val vs = arrayListOf(t); var cur = t
-            bolt(P.x, P.y, t.x, t.y, c); hit(t, d, c); cb(t, d)
+            bolt(P.x, P.y, t.x, t.y, c); hit(t, d, c); stun(t); cb(t, d)
             while (vs.size < 4 + m.ch) {
                 val nx = near(cur.x, cur.y, 130.0, vs) ?: break
-                bolt(cur.x, cur.y, nx.x, nx.y, c); hit(nx, d, c); cb(nx, d); vs.add(nx); cur = nx
+                bolt(cur.x, cur.y, nx.x, nx.y, c); hit(nx, d, c); stun(nx); cb(nx, d); vs.add(nx); cur = nx
             }
         }
         "frost" -> {
@@ -191,11 +197,16 @@ const val OOF = 2.5
 fun oPh(): Double = (Sn?.oct ?: 0.0) % (OON + OOF)
 fun oVis() = oPh() < OON
 fun OB(): Orb? {
+    val o = OB0() ?: return null
+    o.n += wa(o.k, "prj"); o.r *= 1 + .12 * wa(o.k, "rng"); o.iv = .35 * (1 - .08 * wa(o.k, "rld"))
+    return o
+}
+fun OB0(): Orb? {
     for ((k, w) in S.ws) {
         val D = WD[k]!!
         val ex = (if (w.l >= 3) 1 else 0) + (if (w.l >= 5) 1 else 0)
-        if (k == "fz_blade") return Orb(w, 4 + ex, 64.0, 26.0, "#fc6", 20.0, 16.0)
-        if (D.gd == "orbit") return Orb(w, 4 + ex, 58.0, 22.0, D.c, 18.0, 15.0, RC(D.rd!!, D.c))
+        if (k == "fz_blade") return Orb(w, 4 + ex, 64.0, 26.0, "#fc6", 20.0, 16.0, null, k)
+        if (D.gd == "orbit") return Orb(w, 4 + ex, 58.0, 22.0, D.c, 18.0, 15.0, RC(D.rd!!, D.c), k)
     }
     val q = S.ws["orbit"] ?: return null
     return Orb(q, 3 + (if (q.l >= 2) 1 else 0) + (if (q.l >= 4) 1 else 0), 46.0, 16.0, "#8f8", 16.0, 13.0)
@@ -227,11 +238,16 @@ fun slash(a: Double, r: Double, d: Double, ha: Double, c: String, mk: Double, cb
     fxA(a, r, ha, .26, c)
     burst(P.x + cos(a) * r * .8, P.y + sin(a) * r * .8, 10.0, c, 320.0, .28, 3.0, a, 1.8); shake(3.0); snd(220.0, .1, "triangle", .06)
 }
+fun stun(e: En) {
+    if (e.boss || e.sti > S.t) return
+    val d = .3 + .15 * pl("dur")
+    e.stn = Math.max(e.stn, d); e.sti = S.t + d + .5
+}
 fun chainFrom(t: En, d: Double, n: Int) {
     val vs = arrayListOf(t); var c = t
     while (vs.size <= n) {
         val nx = near(c.x, c.y, 130.0, vs) ?: break
-        bolt(c.x, c.y, nx.x, nx.y, "#ff6"); hit(nx, d, "#ff6"); vs.add(nx); c = nx
+        bolt(c.x, c.y, nx.x, nx.y, "#ff6"); hit(nx, d, "#ff6"); stun(nx); vs.add(nx); c = nx
     }
 }
 fun near(x: Double, y: Double, r: Double, ex: List<En>? = null): En? {
@@ -326,16 +342,21 @@ fun beam(a: Double, len: Double, w: Double, n: Int, d: Double, c: String, ex: Ha
 }
 
 // ===== 무기 발사 =====
-fun fire(k: String, w: Wp): Boolean {
+fun fire(k: String, w: Wp, rp: Rp? = null): Boolean {
     val m = stat(); val D = WD[k]!!
-    val ds = (1 + .2 * (w.l - 1)) * (if (D.fz && rlc("cata") > 0) 1.25 else 1.0)
+    val rw = wa(k, "rng"); m.ar *= 1 + .12 * rw; m.bw = 1 + .25 * rw
+    val ds = (1 + .2 * (w.l - 1)) * (if (D.fz && rlc("cata") > 0) 1.25 else 1.0) * (if (rp != null) .6 else 1.0)
     val ra = D.r * m.ar
     S.cc = D.c
     if (k == "orbit" || D.gd == "orbit") return true
     val auto = tb("aa") > 0
     val aa0 = if (auto) 0.0 else aimAngle()
-    val t = (if (auto) near(P.x, P.y, ra) else nearCone(ra, aa0, .7)) ?: return false
-    val a = if (auto) atan2(t.y - P.y, t.x - P.x) else aa0
+    var t = (if (rp != null) (if (rp.x[0].dead) near(P.x, P.y, ra) else rp.x[0]) else if (auto) near(P.x, P.y, ra) else nearCone(ra, aa0, .7)) ?: return false
+    var a = if (auto) atan2(t.y - P.y, t.x - P.x) else aa0
+    if (rp != null) {
+        val o = near(P.x, P.y, ra, rp.x)
+        if (o != null) { rp.x.add(o); t = o; a = atan2(t.y - P.y, t.x - P.x) } else a = atan2(t.y - P.y, t.x - P.x) + rp.o
+    }
     S.la = a; S.lw = k; S.lt = S.t
     val tg = if (auto || pl("aim") > 0) t else null
     when {
@@ -347,7 +368,7 @@ fun fire(k: String, w: Wp): Boolean {
         }
         k == "blade" -> {
             val dd = hyp(t.x - P.x, t.y - P.y)
-            val lg0 = Math.min(34.0, Math.max(0.0, dd - 32))
+            val lg0 = if (rp != null) 0.0 else Math.min(34.0, Math.max(0.0, dd - 32))
             val dx0 = P.x + cos(a) * lg0; val dy0 = P.y + sin(a) * lg0
             val lg = if (S.en.count { !it.dead && hyp(it.x - dx0, it.y - dy0) < 50 } > 2) 0.0 else lg0
             burst(P.x, P.y, 5.0, "#ffb347", 120.0, .3, 3.0)
@@ -367,14 +388,14 @@ fun fire(k: String, w: Wp): Boolean {
             cone(ra, 40 * ds, null, 1.05)
             S.q.add(Q(.2) { cone(ra * .9, 24 * ds, "#fff", 1.2) })
         }
-        k == "rail" -> { shake(2.5); snd(700.0, .22, "sawtooth", .05); burst(P.x, P.y, 8.0, D.c, 300.0, .2, 3.0, a, .5); beam(a, ra, 14.0, 5 + m.pc.toInt(), 50 * ds, D.c) }
+        k == "rail" -> { shake(2.5); snd(700.0, .22, "sawtooth", .05); burst(P.x, P.y, 8.0, D.c, 300.0, .2, 3.0, a, .5); beam(a, ra, 14.0 * m.bw, 5 + m.pc.toInt(), 50 * ds, D.c) }
         k == "grav" -> { val r = 45 * m.ar; fxO(t.x, t.y, r * 1.7, D.c, .14); S.q.add(Q(.12) { aoe(t.x, t.y, r, 34 * ds, null, D.c) }) }
         k == "arc" -> {
             val vs = arrayListOf(t); var c = t; val n = 3 + m.ch
-            bolt(P.x, P.y, t.x, t.y, D.c); snd(900.0, .07, "square", .03); hit(t, 18 * ds)
+            bolt(P.x, P.y, t.x, t.y, D.c); snd(900.0, .07, "square", .03); hit(t, 18 * ds); stun(t)
             while (vs.size < n) {
                 val nx = near(c.x, c.y, 120.0, vs) ?: break
-                bolt(c.x, c.y, nx.x, nx.y, D.c); hit(nx, 18 * ds); vs.add(nx); c = nx
+                bolt(c.x, c.y, nx.x, nx.y, D.c); hit(nx, 18 * ds); stun(nx); vs.add(nx); c = nx
             }
         }
         k == "frost" -> { hit(t, 16 * ds); t.mk = .8; t.md = 12 * ds; ln(P.x, P.y, t.x, t.y, D.c, 2.0, .15); burst(t.x, t.y, 5.0, "#cff", 120.0, .3, 3.0); snd(1000.0, .08, "sine", .04) }
@@ -387,10 +408,10 @@ fun fire(k: String, w: Wp): Boolean {
         k == "fz_rail" -> {
             shake(3.0); snd(500.0, .3, "sawtooth", .06)
             val ex = HashSet<En>()
-            val b = if (pl("aim") > 0) atan2(t.y - P.y, t.x - P.x) else a
+            val b = if (pl("aim") > 0 && rp == null) atan2(t.y - P.y, t.x - P.x) else a
             S.la = b
-            beam(b, ra, 10.0, 5 + m.pc.toInt(), 70 * ds, D.c, ex)
-            for (o in doubleArrayOf(-.3, .3)) beam(b + o, ra * .85, 7.0, 3 + m.pc.toInt(), 30 * ds, D.c, ex)
+            beam(b, ra, 10.0 * m.bw, 5 + m.pc.toInt(), 70 * ds, D.c, ex)
+            for (o in doubleArrayOf(-.3, .3)) beam(b + o, ra * .85, 7.0 * m.bw, 3 + m.pc.toInt(), 30 * ds, D.c, ex)
         }
         k == "fz_blade" -> slash(a, ra * .9, 40 * ds, 1.6, D.c, 0.0)
         D.gd != null -> gfire(D, ds, m, ra, t, a)
@@ -398,6 +419,10 @@ fun fire(k: String, w: Wp): Boolean {
             if (S.mn.size >= 8) S.mn.removeAt(0)
             S.mn.add(Mine(t.x, t.y, .7, 60 * ds, 60 * m.ar))
         }
+    }
+    if (rp == null) {
+        val x = arrayListOf(t)
+        for (i in 1..wa(k, "prj")) S.q.add(Q(.1 * i) { fire(k, w, Rp(x, if (i % 2 == 1) .3 else -.3)) })
     }
     return true
 }
@@ -740,7 +765,7 @@ fun upd(dt0: Double) {
     for ((k, w) in S.ws.entries.toList()) {
         if (k == "orbit") continue
         w.t -= dt
-        if (w.t <= 0) w.t = if (fire(k, w)) Math.max(.15, WD[k]!!.i * m.iv) else .1
+        if (w.t <= 0) w.t = if (fire(k, w)) Math.max(.15, WD[k]!!.i * m.iv * (1 - .08 * wa(k, "rld"))) else .1
     }
     OB()?.let { o ->
         S.oct += dt; S.oa += 3.4 * dt
@@ -750,7 +775,7 @@ fun upd(dt0: Double) {
             S.en.each { e ->
                 if (!e.dead && e.oc <= S.t && hyp(e.x - x, e.y - y) < e.r + o.hr) {
                     val dm = o.d * (1 + .2 * (o.w.l - 1))
-                    hit(e, dm, o.c); o.cb?.invoke(e, dm); e.oc = S.t + .35
+                    hit(e, dm, o.c); o.cb?.invoke(e, dm); e.oc = S.t + o.iv
                 }
             }
             S.ep.each { q -> if (q.l > 0 && hyp(q.x - x, q.y - y) < o.hr) { q.l = 0.0; burst(q.x, q.y, 6.0, o.c, 160.0, .25, 3.0); snd(500.0, .05, "square", .03) } }
@@ -801,7 +826,7 @@ fun upd(dt0: Double) {
             val e = S.en[i]
             if (!e.dead && hyp(e.x - p.x, e.y - p.y) < e.r + 5) {
                 hit(e, p.d, if (p.ch) "#ff6" else "#6cf")
-                if (p.ch) chainFrom(e, p.d * .6, 3 + pl("chain").toInt())
+                if (p.ch) { stun(e); chainFrom(e, p.d * .6, 3 + pl("chain").toInt()) }
                 p.cb?.invoke(e, p.d)
                 p.l = 0.0
                 break
@@ -874,10 +899,11 @@ private fun enemyStep(e: En, dt: Double, m: Stat) {
     if (e.mk > 0) {
         e.mk -= dt
         if (e.mk <= 0) {
-            hit(e, e.md, "#9ef"); e.sl = 1.2; burst(e.x, e.y, 14.0, "#cff", 300.0, .5, 4.0); burst(e.x, e.y, 6.0, "#fff", 200.0, .4, 3.0)
+            hit(e, e.md, "#9ef"); e.sl = 1.2 + .6 * pl("dur"); burst(e.x, e.y, 14.0, "#cff", 300.0, .5, 4.0); burst(e.x, e.y, 6.0, "#fff", 200.0, .4, 3.0)
             fxR(e.x, e.y, e.r * 3, "#9ef", .3); snd(1300.0, .12, "triangle", .05)
         }
     }
+    if (e.stn > 0) { e.stn -= dt; e.sl -= dt; e.es -= dt; e.fl -= dt; e.sq = Math.max(0.0, e.sq - dt * 7); return }
     if (e.boss) {
         val tr = e.tr
         e.tr = if (tr == null || tr < e.hp) e.hp else Math.max(e.hp, tr - (e.mh * .12 + (tr - e.hp) * 1.6) * dt)
@@ -1026,6 +1052,7 @@ fun opts(): ArrayList<Opt> {
         val l = (S.ps[k] ?: 0)
         if (l >= D.mx) continue
         if (l == 0 && np >= 4 + tb("ps")) continue
+        if (AGW.containsKey(k) && S.ws.keys.none { wOk(it, k) }) continue
         o.add(Opt(D.n + " Lv" + l + " → " + (l + 1), D.t) { S.ps[k] = l + 1 })
     }
     return o

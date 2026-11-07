@@ -466,6 +466,7 @@ fun draw(g: G) {
             if (cos(aa) < 0) g.scale(1.0, -1.0)
             g.scale(3.0, 3.0); g.drawImage(c, -2.0, -c.h / 2); g.restore()
         }
+        if (e.stn > 0) { g.strokeStyle = "#ff6"; g.lineWidth = 2.0; g.beginPath(); g.arc(e.x, e.y, e.r + 6, 0.0, TAU); g.stroke() }
         if (e.mk > 0) {
             val R = (e.r + 8) * (1 + .15 * sin(S.t * 20))
             g.strokeStyle = "#9ef"; g.lineWidth = 2.0; g.beginPath(); g.moveTo(e.x, e.y - R); g.lineTo(e.x + R, e.y); g.lineTo(e.x, e.y + R); g.lineTo(e.x - R, e.y); g.closePath(); g.stroke()

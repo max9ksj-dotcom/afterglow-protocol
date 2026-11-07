@@ -82,6 +82,25 @@ private fun fuseRun() {
             n++
         }
         android.util.Log.i("AGFUSE", "smoke ok " + n)
+        fun set(p: Map<String, Int>) { s.ps.clear(); s.ps.putAll(p) }
+        fun step(n: Int) = repeat(n) { P.hp = 1e9; upd(.016) }
+        fun cyc(k: String, p: Map<String, Int>): Double { val l = line(); l.size; set(p); s.ws[k] = Wp(1, 0.0); upd(.016); return s.ws[k]!!.t }
+        fun frost(v: Int): Int { val l = line(); set(mapOf("prj" to v)); val w = Wp(1, 99.0); s.ws["frost"] = w; fire("frost", w); step(30); return cnt(l) }
+        fun far(k: String, v: Int): Boolean { line(); set(emptyMap()); val d = WD[k]!!.r * stat().ar + 30; s.en.clear(); set(mapOf("rng" to v)); spawn("tank", P.x + d, P.y)!!.also { it.hp = 1e9; it.mh = 1e9 }; return fire(k, Wp(1, 99.0)) }
+        fun stn(v: Int): Double { val l = line(); set(mapOf("dur" to v)); fire("arc", Wp(1, 99.0)); return l[0].stn }
+        fun orb(p: Map<String, Int>): String { line(); set(p); s.ws["orbit"] = Wp(1, 0.0); val o = OB()!!; return "" + o.n + "/" + o.r + "/" + o.iv }
+        fun offer(k: String): String { line(); s.ps.clear(); s.ws[k] = Wp(1, 0.0); return AGW.keys.filter { p -> opts().any { it.a.startsWith(PD[p]!!.n) } }.joinToString(",") }
+        android.util.Log.i("AGFUSE", "reload rail " + cyc("rail", emptyMap()) + "->" + cyc("rail", mapOf("rld" to 3)) + " grav " + cyc("grav", emptyMap()) + "->" + cyc("grav", mapOf("rld" to 3)))
+        android.util.Log.i("AGFUSE", "prj frost " + frost(0) + "->" + frost(2) + " range rail " + far("rail", 0) + "->" + far("rail", 3) + " pulse " + far("pulse", 3) + " stun " + stn(0) + "->" + stn(3))
+        val bs = spawn("boss", P.x + 50, P.y)!!; stun(bs)
+        android.util.Log.i("AGFUSE", "orbit " + orb(emptyMap()) + " -> " + orb(mapOf("prj" to 2, "rng" to 3, "rld" to 3)) + " bossStun " + bs.stn)
+        android.util.Log.i("AGFUSE", "offer grav[" + offer("grav") + "] arc[" + offer("arc") + "] frost[" + offer("frost") + "] fz_core[" + offer("fz_core") + "] fz_storm[" + offer("fz_storm") + "]")
+        var c = 0
+        for ((k, _) in WD) {
+            line(); set(mapOf("rld" to 3, "dur" to 3, "prj" to 2, "rng" to 3, "pierce" to 3, "chain" to 3, "aim" to 3)); s.ws[k] = Wp(1, 0.0)
+            step(90); c++
+        }
+        android.util.Log.i("AGFUSE", "allmax ok " + c)
     }, 1500)
 }
 
@@ -108,6 +127,11 @@ private fun fitRun(mode: String) {
             "fitp2" -> nextPage()
             "fitp3" -> { s.pg = 2; s.rivalId = CHR[0].id; toRival(); s.cb = 12; s.ct = 1e5 }
             "fitlv" -> lvup()
+            "fitaug" -> {
+                s.ws.clear(); for (k in WD.keys.filter { WD[it]!!.fz && wOk(it, "prj") && wOk(it, "rng") && wOk(it, "dur") }.take(4)) s.ws[k] = Wp(5, 99.0)
+                s.ps.clear(); for ((k, d) in PD) s.ps[k] = if (AGW.containsKey(k)) 1 else d.mx
+                lvup()
+            }
             "fitpause" -> pauseT()
             "fitend" -> { s.pg = 3; s.kills = 12345; s.na.addAll(ACH.take(5).map { it.n }); s.cr0 = 12; s.bg = true; end(true) }
         }
