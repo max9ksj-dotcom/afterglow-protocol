@@ -35,7 +35,7 @@ class Prj(var x: Double, var y: Double, var a: Double, val d: Double, val tg: En
     val tr = ArrayList<DoubleArray>()
 }
 class EP(var x: Double, var y: Double, var vx: Double, var vy: Double, var l: Double, val d: Double = 8.0, val h: Double = 0.0, val rd: String? = null)
-class Mine(val x: Double, val y: Double, var ar: Double, val d: Double, val r: Double, var x_: Boolean = false)
+class Mine(val x: Double, val y: Double, var ar: Double, val d: Double, val r: Double, var x_: Boolean = false) { var lf = 6.0 }
 class Gem(var x: Double, var y: Double, val v: Double, val k: String, var a: Double = 0.0, var g: Boolean = false)
 class Pt(var x: Double, var y: Double, var vx: Double, var vy: Double, var l: Double, val m: Double, val c: String, val s: Double)
 class Q(var t: Double, val f: () -> Unit)
@@ -82,7 +82,7 @@ const val SR = 52.0
 
 fun pl(k: String): Double = (S.ps[k] ?: 0).toDouble()
 // 무기별 증강 표. 합체 무기는 재료 무기 둘 중 하나라도 해당되면 효과를 받는다
-val AGW = mapOf("rld" to listOf("pulse", "blade", "rail", "orbit", "arc", "frost"), "dur" to listOf("arc", "frost"), "prj" to listOf("pulse", "blade", "rail", "orbit", "frost"), "rng" to listOf("blade", "rail", "orbit", "frost"))
+val AGW = mapOf("rld" to listOf("pulse", "blade", "rail", "orbit", "arc", "frost", "grav", "mine"), "dur" to listOf("arc", "frost", "grav"), "prj" to listOf("pulse", "blade", "rail", "orbit", "frost", "mine"), "rng" to listOf("blade", "rail", "orbit", "frost", "grav", "mine"))
 fun wOk(k: String, p: String): Boolean { val W = AGW[p]!!; return k in W || WD[k]!!.req.any { it in W } }
 fun wa(k: String, p: String): Int { val l = S.ps[p] ?: 0; return if (l > 0 && wOk(k, p)) l else 0 }
 fun rlc(id: String): Int = Sn?.rl?.get(id) ?: 0
@@ -175,7 +175,7 @@ fun gfire(D: Wd, ds: Double, m: Stat, ra: Double, t: En, a: Double) {
         }
         "blade" -> slash(a, ra, d, 1.1, c, 0.0, cb)
         "rail" -> { shake(3.0); snd(480.0, .25, "sawtooth", .06); beam(a, ra, 10.0 * m.bw, 4 + m.pc.toInt(), d, c, null, null, null, cb) }
-        "grav" -> { fxO(t.x, t.y, 75.0, c, .14); S.q.add(Q(.12) { aoe(t.x, t.y, 62 * m.ar, d, null, c, cb) }) }
+        "grav" -> { fxO(t.x, t.y, 75.0, c, .14); S.q.add(Q(.12) { aoe(t.x, t.y, 62 * m.ar, d, null, c, cb); gwell(t.x, t.y, 62 * m.ar) }) }
         "arc" -> {
             val vs = arrayListOf(t); var cur = t
             bolt(P.x, P.y, t.x, t.y, c); hit(t, d, c); stun(t); cb(t, d)
@@ -237,6 +237,15 @@ fun slash(a: Double, r: Double, d: Double, ha: Double, c: String, mk: Double, cb
     }
     fxA(a, r, ha, .26, c)
     burst(P.x + cos(a) * r * .8, P.y + sin(a) * r * .8, 10.0, c, 320.0, .28, 3.0, a, 1.8); shake(3.0); snd(220.0, .1, "triangle", .06)
+}
+// 지속 증폭: 중력 폭발 자리에 0.5초×레벨 동안 적을 끌어당기는 중력장이 남는다(피해 없음, 보스 제외)
+fun gwell(x: Double, y: Double, r: Double) { val v = pl("dur"); if (v > 0) S.fx.add(Fx('G', .5 * v, .5 * v).also { it.x = x; it.y = y; it.r = r * 1.8 }) }
+// 반응 지뢰 폭발: 범위 안의 다른 지뢰도 0.12초 뒤 연쇄 폭발, 연쇄마다 피해 ×1.2(최대 ×2)
+fun mBoom(mn: Mine, k: Double) {
+    if (mn.x_) return
+    mn.x_ = true
+    aoe(mn.x, mn.y, mn.r, mn.d * k, null, "#f86"); burst(mn.x, mn.y, 26.0, "#fa3", 380.0, .6, 4.0); burst(mn.x, mn.y, 10.0, "#444", 200.0, .8, 5.0); shake(5.0); stop(.05)
+    S.mn.each { o -> if (!o.x_ && o.ar <= 0 && hyp(o.x - mn.x, o.y - mn.y) < mn.r * 1.5) S.q.add(Q(.12) { mBoom(o, Math.min(k * 1.2, 2.0)) }) }
 }
 fun stun(e: En) {
     if (e.boss || e.sti > S.t) return
@@ -389,7 +398,7 @@ fun fire(k: String, w: Wp, rp: Rp? = null): Boolean {
             S.q.add(Q(.2) { cone(ra * .9, 24 * ds, "#fff", 1.2) })
         }
         k == "rail" -> { shake(2.5); snd(700.0, .22, "sawtooth", .05); burst(P.x, P.y, 8.0, D.c, 300.0, .2, 3.0, a, .5); beam(a, ra, 14.0 * m.bw, 5 + m.pc.toInt(), 50 * ds, D.c) }
-        k == "grav" -> { val r = 45 * m.ar; fxO(t.x, t.y, r * 1.7, D.c, .14); S.q.add(Q(.12) { aoe(t.x, t.y, r, 34 * ds, null, D.c) }) }
+        k == "grav" -> { val r = 45 * m.ar; fxO(t.x, t.y, r * 1.7, D.c, .14); S.q.add(Q(.12) { aoe(t.x, t.y, r, 34 * ds, null, D.c); gwell(t.x, t.y, r) }) }
         k == "arc" -> {
             val vs = arrayListOf(t); var c = t; val n = 3 + m.ch
             bolt(P.x, P.y, t.x, t.y, D.c); snd(900.0, .07, "square", .03); hit(t, 18 * ds); stun(t)
@@ -844,7 +853,14 @@ fun upd(dt0: Double) {
                     if (d < 110 && d > 2) { e.x += (f.x - e.x) / d * 250 * dt; e.y += (f.y - e.y) / d * 250 * dt }
                 }
             }
-            if (f.l <= 0) aoe(f.x, f.y, f.r * 1.2, if (f.d != 0.0) f.d else 48.0, null, "#a8f")
+            if (f.l <= 0) { aoe(f.x, f.y, f.r * 1.2, if (f.d != 0.0) f.d else 48.0, null, "#a8f"); gwell(f.x, f.y, f.r * 1.2) }
+        } else if (f.t == 'G') {
+            S.en.each { e ->
+                if (!e.dead && !e.boss) {
+                    val d = hyp(f.x - e.x, f.y - e.y)
+                    if (d < f.r && d > 8) { e.x += (f.x - e.x) / d * 140 * dt; e.y += (f.y - e.y) / d * 140 * dt }
+                }
+            }
         }
     }
     S.fx.removeAll { it.l <= 0 }
@@ -852,9 +868,9 @@ fun upd(dt0: Double) {
     S.q.removeAll { it.t <= 0 }
     S.mn.each { mn ->
         mn.ar -= dt
-        if (mn.ar <= 0 && !mn.x_ && S.en.any { !it.dead && hyp(it.x - mn.x, it.y - mn.y) < it.r + 25 }) {
-            mn.x_ = true
-            aoe(mn.x, mn.y, mn.r, mn.d, null, "#f86"); burst(mn.x, mn.y, 26.0, "#fa3", 380.0, .6, 4.0); burst(mn.x, mn.y, 10.0, "#444", 200.0, .8, 5.0); shake(5.0); stop(.05)
+        if (mn.ar <= 0 && !mn.x_) {
+            mn.lf -= dt
+            if (mn.lf <= 0 || S.en.any { !it.dead && hyp(it.x - mn.x, it.y - mn.y) < it.r + 25 }) mBoom(mn, 1.0)
         }
     }
     S.mn.removeAll { it.x_ }
