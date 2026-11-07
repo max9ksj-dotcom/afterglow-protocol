@@ -535,6 +535,10 @@ fun draw(g: G) {
                 for (i in 0 until 6) { val an = i * 1.047 + u * 10; g.fillRect(f.x + cos(an) * rr * .7 - 2, f.y + sin(an) * rr * .7 - 2, 4.0, 4.0) }
                 g.fillStyle = "#a8f"; g.circleFill(f.x, f.y, 10 + u * 14)
             }
+            'G' -> {
+                val a0 = Math.min(1.0, f.l / .3); val rr = f.r * (1 - (S.t * 1.5) % 1.0)
+                g.strokeStyle = "#a8f"; g.lineWidth = 2.0; g.globalAlpha = .25 * a0; g.circleStroke(f.x, f.y, f.r); g.globalAlpha = .5 * a0; g.circleStroke(f.x, f.y, rr); g.globalAlpha = 1.0
+            }
         }
     }
     g.lighter = false; g.roundJoin = false
