@@ -85,6 +85,8 @@ fun pl(k: String): Double = (S.ps[k] ?: 0).toDouble()
 val AGW = mapOf("rld" to listOf("pulse", "blade", "rail", "orbit", "arc", "frost", "grav", "mine"), "dur" to listOf("arc", "frost", "grav"), "prj" to listOf("pulse", "blade", "rail", "orbit", "frost", "mine"), "rng" to listOf("blade", "rail", "orbit", "frost", "grav", "mine"))
 fun wOk(k: String, p: String): Boolean { val W = AGW[p]!!; return k in W || WD[k]!!.req.any { it in W } }
 fun wa(k: String, p: String): Int { val l = S.ps[p] ?: 0; return if (l > 0 && wOk(k, p)) l else 0 }
+fun prjN(k: String): Int = (wa(k, "prj") + 1) / 2
+fun prjD(k: String): Double = .6 + .15 * (wa(k, "prj") / 2)
 fun rlc(id: String): Int = Sn?.rl?.get(id) ?: 0
 
 fun relX(): RelX {
@@ -198,7 +200,7 @@ fun oPh(): Double = (Sn?.oct ?: 0.0) % (OON + OOF)
 fun oVis() = oPh() < OON
 fun OB(): Orb? {
     val o = OB0() ?: return null
-    o.n += wa(o.k, "prj"); o.r *= 1 + .12 * wa(o.k, "rng"); o.iv = .35 * (1 - .08 * wa(o.k, "rld"))
+    o.n += prjN(o.k); o.r *= 1 + .1 * wa(o.k, "rng"); o.iv = .35 * (1 - .06 * wa(o.k, "rld"))
     return o
 }
 fun OB0(): Orb? {
@@ -238,8 +240,8 @@ fun slash(a: Double, r: Double, d: Double, ha: Double, c: String, mk: Double, cb
     fxA(a, r, ha, .26, c)
     burst(P.x + cos(a) * r * .8, P.y + sin(a) * r * .8, 10.0, c, 320.0, .28, 3.0, a, 1.8); shake(3.0); snd(220.0, .1, "triangle", .06)
 }
-// 지속 증폭: 중력 폭발 자리에 0.5초×레벨 동안 적을 끌어당기는 중력장이 남는다(피해 없음, 보스 제외)
-fun gwell(x: Double, y: Double, r: Double) { val v = pl("dur"); if (v > 0) S.fx.add(Fx('G', .5 * v, .5 * v).also { it.x = x; it.y = y; it.r = r * 1.8 }) }
+// 지속 증폭: 중력 폭발 자리에 0.4초×레벨 동안 적을 끌어당기는 중력장이 남는다(피해 없음, 보스 제외)
+fun gwell(x: Double, y: Double, r: Double) { val v = pl("dur"); if (v > 0) S.fx.add(Fx('G', .4 * v, .4 * v).also { it.x = x; it.y = y; it.r = r * 1.8 }) }
 // 반응 지뢰 폭발: 범위 안의 다른 지뢰도 0.12초 뒤 연쇄 폭발, 연쇄마다 피해 ×1.2(최대 ×2)
 fun mBoom(mn: Mine, k: Double) {
     if (mn.x_) return
@@ -249,7 +251,7 @@ fun mBoom(mn: Mine, k: Double) {
 }
 fun stun(e: En) {
     if (e.boss || e.sti > S.t) return
-    val d = .3 + .15 * pl("dur")
+    val d = .3 + .12 * pl("dur")
     e.stn = Math.max(e.stn, d); e.sti = S.t + d + .5
 }
 fun chainFrom(t: En, d: Double, n: Int) {
@@ -353,8 +355,8 @@ fun beam(a: Double, len: Double, w: Double, n: Int, d: Double, c: String, ex: Ha
 // ===== 무기 발사 =====
 fun fire(k: String, w: Wp, rp: Rp? = null): Boolean {
     val m = stat(); val D = WD[k]!!
-    val rw = wa(k, "rng"); m.ar *= 1 + .12 * rw; m.bw = 1 + .25 * rw
-    val ds = (1 + .2 * (w.l - 1)) * (if (D.fz && rlc("cata") > 0) 1.25 else 1.0) * (if (rp != null) .6 else 1.0)
+    val rw = wa(k, "rng"); m.ar *= 1 + .1 * rw; m.bw = 1 + .2 * rw
+    val ds = (1 + .2 * (w.l - 1)) * (if (D.fz && rlc("cata") > 0) 1.25 else 1.0) * (if (rp != null) prjD(k) else 1.0)
     val ra = D.r * m.ar
     S.cc = D.c
     if (k == "orbit" || D.gd == "orbit") return true
@@ -431,7 +433,7 @@ fun fire(k: String, w: Wp, rp: Rp? = null): Boolean {
     }
     if (rp == null) {
         val x = arrayListOf(t)
-        for (i in 1..wa(k, "prj")) S.q.add(Q(.1 * i) { fire(k, w, Rp(x, if (i % 2 == 1) .3 else -.3)) })
+        for (i in 1..prjN(k)) S.q.add(Q(.1 * i) { fire(k, w, Rp(x, if (i % 2 == 1) .3 else -.3)) })
     }
     return true
 }
@@ -774,7 +776,7 @@ fun upd(dt0: Double) {
     for ((k, w) in S.ws.entries.toList()) {
         if (k == "orbit") continue
         w.t -= dt
-        if (w.t <= 0) w.t = if (fire(k, w)) Math.max(.15, WD[k]!!.i * m.iv * (1 - .08 * wa(k, "rld"))) else .1
+        if (w.t <= 0) w.t = if (fire(k, w)) Math.max(.15, WD[k]!!.i * m.iv * (1 - .06 * wa(k, "rld"))) else .1
     }
     OB()?.let { o ->
         S.oct += dt; S.oa += 3.4 * dt
@@ -915,7 +917,7 @@ private fun enemyStep(e: En, dt: Double, m: Stat) {
     if (e.mk > 0) {
         e.mk -= dt
         if (e.mk <= 0) {
-            hit(e, e.md, "#9ef"); e.sl = 1.2 + .6 * pl("dur"); burst(e.x, e.y, 14.0, "#cff", 300.0, .5, 4.0); burst(e.x, e.y, 6.0, "#fff", 200.0, .4, 3.0)
+            hit(e, e.md, "#9ef"); e.sl = 1.2 + .5 * pl("dur"); burst(e.x, e.y, 14.0, "#cff", 300.0, .5, 4.0); burst(e.x, e.y, 6.0, "#fff", 200.0, .4, 3.0)
             fxR(e.x, e.y, e.r * 3, "#9ef", .3); snd(1300.0, .12, "triangle", .05)
         }
     }
