@@ -405,10 +405,28 @@ private var vgShader: Shader? = null
 private var vgW = 0.0
 private var vgH = 0.0
 
+/** 메인 메뉴 화면이면 true (뒤에 지난 판 화면 대신 메뉴 배경을 그림) */
+var MENU = true
+/** 메인 메뉴 뒤 배경: 천천히 흐르는 회로 격자 + 떠오르는 잔광 입자 */
+fun menuBG(g: G) {
+    val t = System.nanoTime() / 1e9; val gs = 48.0
+    g.fillStyle = "#1a1f3a"
+    var x = -(t * 8) % gs; while (x < W) { g.fillRect(rd(x), 0.0, 1.0, H); x += gs }
+    var y = -(t * 5) % gs; while (y < H) { g.fillRect(0.0, rd(y), W, 1.0); y += gs }
+    for (i in 0 until 70) {
+        val sp = 12 + hsh(i, 2) % 30; val z = 1 + hsh(i, 4) % 3
+        val px = ((hsh(i, 1) % W.toLong().coerceAtLeast(1)) + Math.sin(t * .6 + i) * 18 + W) % W
+        val py = H - ((hsh(i, 3) % H.toLong().coerceAtLeast(1) + t * sp) % (H + 40)) + 20
+        g.globalAlpha = .25 + .45 * Math.abs(Math.sin(t * 1.3 + i))
+        g.fillStyle = if (i % 3 != 0) "#ffb347" else "#5fd8ff"
+        g.fillRect(rd(px), rd(py), z * 2.0, z * 2.0)
+    }
+    g.globalAlpha = 1.0
+}
 fun draw(g: G) {
     g.resetState()
     g.fillStyle = "#0d1020"; g.fillRect(0.0, 0.0, W, H)
-    if (Sn == null) return
+    if (Sn == null || MENU) { menuBG(g); return }
     if (S.gl > 0 && S.snap != null) { drawGlitch(g); return }
     val sx = (rnd() - .5) * S.sh; val sy = (rnd() - .5) * S.sh
     val cm = camPos(); val cx = W / 2 - cm[0] + sx; val cy = H / 2 - cm[1] + sy
@@ -615,6 +633,11 @@ fun draw(g: G) {
         }
         g.fillShader(dkShader!!, 0.0, 0.0, W, H)
     }
+    if (S.run && P.hp > 0 && P.hp < P.mh * .3) {
+        val k = (1 - P.hp / (P.mh * .3)) * .35 * (.6 + .4 * Math.abs(Math.sin(S.t * 3.2)))
+        val r0 = Math.min(W, H) * .38; val r1 = Math.max(W, H) * .72
+        g.fillShader(RadialGradient((W / 2).toFloat(), (H / 2).toFloat(), r1.toFloat(), intArrayOf(0x00FF1E32, ((k * 255).toInt() shl 24) or 0xFF1E32), floatArrayOf((r0 / r1).toFloat(), 1f), Shader.TileMode.CLAMP), 0.0, 0.0, W, H)
+    }
     if (S.vg > 0) {
         val r0 = Math.min(W, H) * .3; val r1 = Math.max(W, H) * .7
         val a = (Math.min(.6, S.vg) * 255).toInt()
@@ -681,7 +704,13 @@ private fun drawHud(g: G) {
     val tt = "" + t / 60 + ":" + two(t % 60) + (if (S.T > 1e8) "" else " / " + fl(S.T / 60).toInt() + ":" + two((S.T % 60).toInt()))
     val bw = hudBox() - 12
     g.fillStyle = "rgba(8,10,24,.55)"; g.fillRect(6.0, 6.0, bw + 12, if (hm == 1) 112.0 else if (hm == 0) 66.0 else 50.0)
-    g.fillStyle = "#2a1018"; g.fillRect(12.0, 12.0, bw, 9.0); g.fillStyle = "#f55"; g.fillRect(12.0, 12.0, bw * (P.hp / P.mh).coerceIn(0.0, 1.0), 9.0)
+    g.fillStyle = "#2a1018"; g.fillRect(12.0, 12.0, bw, 9.0)
+    run { // 체력바: 잃은 부분이 노랗게 남았다가 천천히 줄어든다, 30% 아래에서 깜빡임
+        val hr = (P.hp / P.mh).coerceIn(0.0, 1.0)
+        P.hpT = if (P.hpT < 0 || P.hpT < hr) hr else Math.max(hr, P.hpT - .6 / 60)
+        g.fillStyle = "#ffe0a0"; g.fillRect(12.0, 12.0, bw * P.hpT, 9.0)
+        g.fillStyle = if (hr < .3 && Math.floor(S.t * 4).toInt() % 2 == 1) "#ff8a8a" else "#f55"; g.fillRect(12.0, 12.0, bw * hr, 9.0)
+    }
     g.fillStyle = "#10202a"; g.fillRect(12.0, 24.0, bw, 5.0); g.fillStyle = "#5fd8ff"; g.fillRect(12.0, 24.0, bw * (P.xp / P.nx).coerceIn(0.0, 1.0), 5.0)
     val hl1 = "HP " + Math.ceil(P.hp).toInt() + "/" + Math.round(P.mh) + "  Lv" + P.lv + (if (S.pg > 1) "  PAGE " + S.pg else "")
     val hl2 = tt + "  처치 " + S.kills + (if (tb("aa") > 0) "" else " · 수동조준")

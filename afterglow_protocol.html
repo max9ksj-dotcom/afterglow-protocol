@@ -520,7 +520,7 @@ function opts(){const o=[];
 // 레벨업 카드: 왼쪽 그림(무기 도트 또는 능력 아이콘) + 종류 표시 + 레벨 눈금. 숫자 키 1~9로도 고를 수 있다
 const WIMG={};function wImg(k){if(!WIMG[k]){const c=wsp(k),z=document.createElement('canvas');z.width=40;z.height=40;const x=z.getContext('2d'),sc=Math.max(1,Math.floor(Math.min(36/c.width,36/c.height)));x.imageSmoothingEnabled=false;x.drawImage(c,Math.round((40-c.width*sc)/2),Math.round((40-c.height*sc)/2),c.width*sc,c.height*sc);WIMG[k]=z.toDataURL?z.toDataURL():''}return WIMG[k]}
 function optCard(x,i,on){const ic=x.wk?`<img class="ri" src="${wImg(x.wk)}" style="image-rendering:pixelated">`:x.ic?`<svg class="ri" viewBox="-1 -1 12 12"><use href="#ic_${x.ic}"/></svg>`:'',pp=x.mx?'<span class="pp">'+Array.from({length:x.mx},(_,j)=>`<i class="${j<x.lv?'f':j==x.lv?'n':''}" style="--c:${x.tc||'#5fd8ff'}"></i>`).join('')+'</span>':'';
- return `<button class="b oc${x.ev?' ev':''}" style="--c:${x.tc||'#2c335c'};animation-delay:${i*.06}s" onclick="${on}(${i})">${ic}<span class="ui">${x.tg?`<em class="tg">${x.tg}</em>`:''}<b>${x.a}</b>${pp}<small>${x.b}</small></span>${tch?'':`<kbd>${i+1}</kbd>`}</button>`}
+ return `<button class="b oc${x.ev?' ev':''}" style="--c:${x.tc||'#2c335c'};animation-delay:${i*.06}s" onclick="${on}(${i})">${ic}<span class="ui">${x.tg&&!x.a.includes(x.tg)?`<em class="tg">${x.tg}</em>`:''}<b>${x.a}</b>${pp}<small>${x.b}</small></span>${tch?'':`<kbd>${i+1}</kbd>`}</button>`}
 function lvup(){
  S.run=0;let o=opts().sort(()=>Math.random()-.5);const ev=o.filter(x=>x.ev);o=ev.concat(o.filter(x=>!x.ev)).slice(0,3+tb('ch'));
  if(!o.length)o=[{a:'체력 회복',b:'체력 +30',f:()=>P.hp=Math.min(P.mh,P.hp+30)}];

@@ -102,7 +102,7 @@ private fun page(name: String, back: (() -> Unit)?, maxW: Double = 560.0, build:
     val h = host!!
     screen = name; backAct = back
     h.ov.removeAllViews(); h.ov.visibility = View.VISIBLE
-    h.ov.setBackgroundColor(Col.parse("rgba(8,10,22,.88)"))
+    h.ov.setBackgroundColor(Col.parse(if (name == "menu") "rgba(8,10,22,.55)" else "rgba(8,10,22,.88)"))
     val box = LinearLayout(h).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12.0), dp(12.0), dp(12.0), dp(12.0)); build() }
     val sc = ScrollView(h).apply { isFillViewport = true; overScrollMode = View.OVER_SCROLL_NEVER; isVerticalScrollBarEnabled = false }
     val wrap = FrameLayout(h)
@@ -125,7 +125,16 @@ private fun hideOv() { val h = host!!; h.ov.visibility = View.GONE; h.ov.removeA
 private fun setBar(on: Boolean) { host!!.bar.visibility = if (on) View.VISIBLE else View.GONE }
 
 // ===== 메인 메뉴 =====
+/** 버튼 왼쪽에 무기 도트 그림을 붙인다 */
+private fun withW(b: TextView, k: String, size: Double = 32.0): TextView {
+    val d = BitmapDrawable(b.resources, wsp(k).b); d.isFilterBitmap = false
+    val sw = wsp(k).w; val sh = wsp(k).h; val s = dp(size) / Math.max(sw, sh)
+    d.setBounds(0, 0, (sw * s).toInt(), (sh * s).toInt())
+    b.setCompoundDrawables(d, null, null, null); b.compoundDrawablePadding = dp(10.0); b.gravity = Gravity.CENTER_VERTICAL
+    return b
+}
 fun menu() {
+    MENU = true
     setBar(false)
     page("menu", null) {
         h1("잔광 프로토콜")
@@ -136,7 +145,7 @@ fun menu() {
             btn(fc(c.pal['a']!!, "■ " + c.n), if (u) c.d else "🔒 해금: " + c.cd, if (SV.ch == c.id) "#5fd8ff" else "#2c335c", dis = !u, click = if (u) ({ selC(c.id) }) else null)
         })
         p("시작 무기를 고르세요", INK)
-        grid(WD.keys.filter(::UW).map { k -> val D = WD[k]!!; btn(fc(D.c, D.n), D.t) { startGame(k) } })
+        grid(WD.keys.filter(::UW).map { k -> val D = WD[k]!!; withW(btn(fc(D.c, D.n), D.t) { startGame(k) }, k) })
         btnRow(btn("게임 설명") { help("menu") })
         btnRow(btn("강화", "스킬트리 · 능력치 투자 · 유물 도감 — 특성 포인트 " + SV.p + " 보유") { upg() })
         btnRow(btn("심층 연구소", if (SV.x.clr > 0) "과부하 등급 · 보스 러시 · 각성 · 도전 과제 · 기록" else "🔒 3페이지를 클리어하면 열립니다 · 도전 과제와 기록은 볼 수 있습니다") { lab() })
@@ -283,14 +292,15 @@ private fun optCard(x: Opt, i: Int): View {
         background = GradientDrawable().apply { setColor(Col.parse("#10152a")); cornerRadius = dp(6.0).toFloat() }
         layoutParams = LinearLayout.LayoutParams(dp(40.0), dp(40.0)).apply { rightMargin = dp(10.0) }
     })
-    val pips = if (x.mx > 0) "<br>" + (0 until x.mx).joinToString("") { j -> fc(if (j <= x.lv) x.tc else "#2c335c", if (j < x.lv) "■" else if (j == x.lv) "□" else "■") } else ""
-    val tag = if (x.tg.isNotEmpty()) fc(x.tc, "[" + x.tg + "]") + " " else ""
+    val pips = if (x.mx > 0) "<br>" + (0 until x.mx).joinToString("") { j -> fc(if (j < x.lv) x.tc else if (j == x.lv) "#7c86c0" else "#2c335c", "■") } else ""
+    val tag = if (x.tg.isNotEmpty() && !x.a.contains(x.tg)) fc(x.tc, "[" + x.tg + "]") + " " else ""
     row.addView(tv(tag + "<b>" + x.a + "</b>" + pips + "<br><small>" + fc(DIM, x.b) + "</small>", 13.0), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
     row.alpha = 0f; row.translationY = dp(8.0).toFloat()
     row.animate().alpha(1f).translationY(0f).setStartDelay(60L * i).setDuration(220L).start()
     return row
 }
 fun pick(i: Int) {
+    if (i !in S.cur.indices) return
     S.cur[i].f()
     hideOv(); S.run = true
     if (S.sl > 0) { S.sl--; P.lv++; lvup() }
@@ -305,7 +315,18 @@ fun uiEnd(w: Boolean, msg: String?) {
         h1(if (w) (if (S.pg == 3) "생존 성공 — 버그 제거 완료" else "생존 성공") else "작동 정지")
         if (msg != null) p(msg, "#ff8888")
         if (S.pg > 1) p("PAGE " + S.pg + (if (w) " 클리어" else " 도달"), "#ff8ad8")
-        p("이번 페이지 생존 " + t / 60 + "분 " + t % 60 + "초 · 총 처치 " + S.kills + " · 레벨 " + P.lv)
+        val sc = LinearLayout(ctx()).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf(Triple("생존", "" + t / 60 + ":" + String.format(java.util.Locale.US, "%02d", t % 60), "#5fd8ff"), Triple("처치", "" + S.kills, "#ff8a8a"), Triple("레벨", "" + P.lv, "#88ff88"), Triple("포인트", "+" + S.pr0, AMB)).forEachIndexed { i, (a, v, c) ->
+            val cell = LinearLayout(ctx()).apply {
+                orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+                background = android.graphics.drawable.LayerDrawable(arrayOf(bg("#1a1f3a", "#2c335c", 1.0), GradientDrawable().apply { setColor(Col.parse(c)) })).apply { setLayerSize(1, -1, dp(3.0)); setLayerGravity(1, Gravity.TOP or Gravity.FILL_HORIZONTAL) }
+                setPadding(dp(4.0), dp(8.0), dp(4.0), dp(8.0))
+                addView(tv(a, 11.0, DIM, true)); addView(tv("<b>$v</b>", 20.0, c, true))
+                alpha = 0f; translationY = dp(8.0).toFloat(); animate().alpha(1f).translationY(0f).setStartDelay(80L * i).setDuration(300L).start()
+            }
+            sc.addView(cell, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { if (i > 0) leftMargin = dp(8.0) })
+        }
+        addView(sc, lp(t = 14.0, b = 6.0))
         p("획득 특성 포인트 +" + S.pr0 + (if (S.bonus) " (초보자 보너스 +3 포함)" else "") + " (보유 " + SV.p + ")", AMB)
         if (S.nu.isNotEmpty()) p("★ 새 캐릭터 해금: " + S.nu.joinToString(", "), "#ffd24a")
         val x = SV.x
@@ -314,7 +335,16 @@ fun uiEnd(w: Boolean, msg: String?) {
         if (ocN() > 0) p("과부하 " + ocN() + "등급 · 포인트 ×" + String.format(java.util.Locale.US, "%.2f", ocP()), "#ff8866")
         if (S.rush) p("보스 러시", "#ffd24a")
         if (S.na.isNotEmpty()) p("★ 도전 과제 달성: " + S.na.joinToString(", "), "#ffd24a")
-        p("빌드: " + S.ws.entries.joinToString(", ") { WD[it.key]!!.n + " Lv" + it.value.l })
+        p("빌드")
+        S.ws.entries.chunked(2).forEach { row ->
+            val r = LinearLayout(ctx()).apply { orientation = LinearLayout.HORIZONTAL }
+            row.forEachIndexed { i, e -> val D = WD[e.key]!!
+                r.addView(withW(tv(fc(D.c, D.n) + " <b>" + fc(D.c, "Lv" + e.value.l) + "</b>", 12.0).apply { background = bg("#1a1f3a", D.c, 1.0); setPadding(dp(6.0), dp(4.0), dp(8.0), dp(4.0)) }, e.key, 24.0),
+                    LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { if (i > 0) leftMargin = dp(6.0) })
+            }
+            if (row.size == 1) r.addView(View(ctx()), LinearLayout.LayoutParams(0, 1, 1f).apply { leftMargin = dp(6.0) })
+            addView(r, lp(t = 6.0))
+        }
         if (w && S.pg == 3) btnRow(btn("심층으로 잠수 — PAGE 4", "같은 빌드로 끝없는 층에 도전합니다", AMB, "#2d2616") { deepStart() })
         btnRow(btn("같은 무기로 다시 시작") { restart() })
         btnRow(btn("메인 메뉴") { toMenu() })

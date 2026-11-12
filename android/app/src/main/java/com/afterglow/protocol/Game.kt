@@ -28,7 +28,7 @@ class En(val k: String) {
 }
 class Pl {
     var x = 0.0; var y = 0.0; var hp = 100.0; var mh = 100.0; var mh0 = 100.0; var xp = 0.0; var lv = 1; var nx = 8.0; var inv = 0.0
-    var fx = 1.0; var fy = 0.0; var at = 0.0; var dr = 1.0; var mvg = false; var slow = 0.0
+    var fx = 1.0; var fy = 0.0; var at = 0.0; var dr = 1.0; var mvg = false; var slow = 0.0; var hpT = -1.0
 }
 class Wp(var l: Int, var t: Double)
 class Prj(var x: Double, var y: Double, var a: Double, val d: Double, val tg: En?, var l: Double, val tn: Double, val cb: CB? = null, val ch: Boolean = false) {
@@ -1081,6 +1081,7 @@ fun opts(): ArrayList<Opt> {
 
 // ===== 시작·정산 =====
 fun startGame(w: String) {
+    MENU = false
     val hp = 100 + tb("hp") + chm("hp") + up("hp")
     P = Pl().also { it.hp = hp; it.mh = hp; it.mh0 = hp }
     val s = St(w, 300 + tb("tm"))
