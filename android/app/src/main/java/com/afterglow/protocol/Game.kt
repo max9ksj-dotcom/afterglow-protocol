@@ -47,7 +47,8 @@ class Fx(val t: Char, var l: Double, val m: Double) {
     var x1 = 0.0; var y1 = 0.0; var x2 = 0.0; var y2 = 0.0; var w = 3.0; var pts: List<DoubleArray>? = null; var len = 0.0
     var txt = ""; var v = 0L; var cr = false; var d = 0.0; var s: List<Char> = emptyList()
 }
-class Opt(val a: String, val b: String, val ev: Boolean = false, val f: () -> Unit)
+/** 레벨업 선택지. wk = 무기 그림, ic = 능력 아이콘, tg/tc = 종류 표시와 색, lv/mx = 레벨 눈금 */
+class Opt(val a: String, val b: String, val ev: Boolean = false, val wk: String? = null, val ic: String? = null, val tg: String = "", val tc: String = "#5fd8ff", val lv: Int = 0, val mx: Int = 0, val f: () -> Unit)
 class Orb(val w: Wp, var n: Int, var r: Double, val d: Double, val c: String, val hr: Double, val sz: Double, val cb: CB? = null, val k: String = "orbit") { var iv = .35 }
 class Rp(val x: ArrayList<En>, val o: Double)
 class Stat(val dm: Double, val iv: Double, var ar: Double, val pc: Double, val cr: Double, val cd: Double, val bd: Double, val mv: Double, val am: Double, val ch: Double) { var bw = 1.0 }
@@ -82,6 +83,7 @@ const val SR = 52.0
 
 fun pl(k: String): Double = (S.ps[k] ?: 0).toDouble()
 // 무기별 증강 표. 합체 무기는 재료 무기 둘 중 하나라도 해당되면 효과를 받는다
+val PDI = mapOf("over" to "dm", "acc" to "iv", "lens" to "ar", "pierce" to "bd", "prec" to "cr", "rec" to "hp", "mob" to "mv", "arm" to "am", "chain" to "ch", "aim" to "cd", "rld" to "iv", "dur" to "tm", "prj" to "ws", "rng" to "ar")
 val AGW = mapOf("rld" to listOf("pulse", "blade", "rail", "orbit", "arc", "frost", "grav", "mine"), "dur" to listOf("arc", "frost", "grav"), "prj" to listOf("pulse", "blade", "rail", "orbit", "frost", "mine"), "rng" to listOf("blade", "rail", "orbit", "frost", "grav", "mine"))
 fun wOk(k: String, p: String): Boolean { val W = AGW[p]!!; return k in W || WD[k]!!.req.any { it in W } }
 fun wa(k: String, p: String): Int { val l = S.ps[p] ?: 0; return if (l > 0 && wOk(k, p)) l else 0 }
@@ -1052,11 +1054,11 @@ private fun enemyStep(e: En, dt: Double, m: Stat) {
 // ===== 레벨업 선택지 =====
 fun opts(): ArrayList<Opt> {
     val o = ArrayList<Opt>()
-    for ((k, w) in S.ws) { val D = WD[k]!!; if (w.l < 5) o.add(Opt(D.n + " Lv" + w.l + " → " + (w.l + 1), "피해 +20%") { w.l++ }) }
+    for ((k, w) in S.ws) { val D = WD[k]!!; if (w.l < 5) o.add(Opt(D.n + " Lv" + w.l + " → " + (w.l + 1), "피해 +20%", wk = k, tg = "무기 강화", tc = D.c, lv = w.l, mx = 5) { w.l++ }) }
     val need = Math.max(3.0, 5 - chm("fl") - rlc("cata"))
     for ((k, D) in WD) {
         if (D.fz && !S.ws.containsKey(k) && D.req.all { r -> (S.ws[r]?.l ?: 0) >= need }) {
-            o.add(Opt("★ 합체: " + D.req.joinToString(" + ") { WD[it]!!.n } + " → " + D.n, D.t, true) {
+            o.add(Opt("★ 합체: " + D.req.joinToString(" + ") { WD[it]!!.n } + " → " + D.n, D.t, true, wk = k, tg = "합체", tc = "#ffb347") {
                 SV.stF++; sv()
                 D.req.forEach { S.ws.remove(it) }
                 S.ws[k] = Wp(1, 0.0)
@@ -1064,14 +1066,15 @@ fun opts(): ArrayList<Opt> {
             })
         }
     }
-    if (S.ws.size < 4 + tb("ws")) for ((k, D) in WD) if (!S.ws.containsKey(k) && UW(k)) o.add(Opt("새 무기: " + D.n, D.t) { S.ws[k] = Wp(1, .2) })
+    if (S.ws.size < 4 + tb("ws")) for ((k, D) in WD) if (!S.ws.containsKey(k) && UW(k)) o.add(Opt("새 무기: " + D.n, D.t, wk = k, tg = "새 무기", tc = "#88ff88") { S.ws[k] = Wp(1, .2) })
     val np = S.ps.size
     for ((k, D) in PD) {
         val l = (S.ps[k] ?: 0)
         if (l >= D.mx) continue
         if (l == 0 && np >= 4 + tb("ps")) continue
         if (AGW.containsKey(k) && S.ws.keys.none { wOk(it, k) }) continue
-        o.add(Opt(D.n + " Lv" + l + " → " + (l + 1), D.t) { S.ps[k] = l + 1 })
+        val ag = AGW.containsKey(k)
+        o.add(Opt(D.n + " Lv" + l + " → " + (l + 1), D.t, ic = PDI[k] ?: "dm", tg = if (ag) "증강" else "능력", tc = if (ag) "#c77dff" else "#5fd8ff", lv = l, mx = D.mx) { S.ps[k] = l + 1 })
     }
     return o
 }

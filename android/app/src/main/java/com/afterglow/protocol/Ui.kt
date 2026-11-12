@@ -261,11 +261,34 @@ fun lvup() {
     S.cur = o
     page("lvup", {}) {
         h2("레벨 " + P.lv + " — 하나를 고르세요")
-        o.forEachIndexed { i, x ->
-            btnRow(btn(x.a, x.b, if (x.ev) AMB else "#2c335c", if (x.ev) "#2d2616" else "#1a1f3a") { pick(i) })
-        }
+        o.forEachIndexed { i, x -> btnRow(optCard(x, i)) }
         if (S.rr > 0) btnRow(btn("다시 뽑기 (남은 횟수 " + S.rr + ")") { S.rr--; lvup() })
     }
+}
+/** 레벨업 카드: 왼쪽 그림(무기 도트/능력 아이콘) + 종류 표시 + 레벨 눈금. 차례로 살짝 떠오르며 나타난다 */
+private fun optCard(x: Opt, i: Int): View {
+    val row = LinearLayout(ctx()).apply {
+        orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+        background = android.graphics.drawable.LayerDrawable(arrayOf(bg(if (x.ev) "#2d2616" else "#1a1f3a", if (x.ev) AMB else "#2c335c"),
+            GradientDrawable().apply { setColor(Col.parse(x.tc)); cornerRadii = floatArrayOf(dp(6.0).toFloat(), dp(6.0).toFloat(), 0f, 0f, 0f, 0f, dp(6.0).toFloat(), dp(6.0).toFloat()) })).apply {
+            setLayerSize(1, dp(4.0), -1); setLayerGravity(1, Gravity.START or Gravity.FILL_VERTICAL)
+        }
+        setPadding(dp(12.0), dp(9.0), dp(10.0), dp(9.0))
+        setOnClickListener { pick(i) }
+    }
+    val spr = if (x.wk != null) wsp(x.wk) else if (x.ic != null) ric(x.ic) else null
+    if (spr != null) row.addView(ImageView(ctx()).apply {
+        val d = BitmapDrawable(resources, spr.b); d.isFilterBitmap = false
+        setImageDrawable(d); scaleType = ImageView.ScaleType.FIT_CENTER; setPadding(dp(4.0), dp(4.0), dp(4.0), dp(4.0))
+        background = GradientDrawable().apply { setColor(Col.parse("#10152a")); cornerRadius = dp(6.0).toFloat() }
+        layoutParams = LinearLayout.LayoutParams(dp(40.0), dp(40.0)).apply { rightMargin = dp(10.0) }
+    })
+    val pips = if (x.mx > 0) "<br>" + (0 until x.mx).joinToString("") { j -> fc(if (j <= x.lv) x.tc else "#2c335c", if (j < x.lv) "■" else if (j == x.lv) "□" else "■") } else ""
+    val tag = if (x.tg.isNotEmpty()) fc(x.tc, "[" + x.tg + "]") + " " else ""
+    row.addView(tv(tag + "<b>" + x.a + "</b>" + pips + "<br><small>" + fc(DIM, x.b) + "</small>", 13.0), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+    row.alpha = 0f; row.translationY = dp(8.0).toFloat()
+    row.animate().alpha(1f).translationY(0f).setStartDelay(60L * i).setDuration(220L).start()
+    return row
 }
 fun pick(i: Int) {
     S.cur[i].f()
@@ -306,7 +329,7 @@ fun floorPick(pt: Int, cr: Int) {
         h2("심층 " + S.fl + "층 돌파")
         p("특성 포인트 +$pt · 잔광 결정 +$cr", AMB)
         p("다음 층으로 가져갈 것을 고르세요")
-        o.forEachIndexed { i, x -> btnRow(btn(x.a, x.b) { pick(i) }) }
+        o.forEachIndexed { i, x -> btnRow(optCard(x, i)) }
     }
 }
 
