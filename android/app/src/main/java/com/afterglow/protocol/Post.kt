@@ -4,9 +4,9 @@ package com.afterglow.protocol
 
 fun ocN(): Int = Sn?.oc ?: 0
 fun ocP(): Double = 1 + .25 * ocN()
-fun dmgMul(): Double = (1 + .12 * ocN()) * (1 + .06 * (Sn?.fl ?: 0))
-fun eHp(): Double = (1 + .35 * ocN()) * (if (S.pg >= 4) Math.pow(1.22, S.fl.toDouble()) else 1.0) * (if (S.mut?.id == "swarm") .7 else 1.0)
-fun eSp(): Double = (1 + .03 * ocN()) * (if (S.mut?.id == "fast") 1.3 else 1.0)
+fun dmgMul(): Double = (1 + .12 * ocN()) * (Sn?.let { s -> if (s.pg >= 4) (1 + .1 * s.fl + .004 * s.fl * s.fl) * (1 + .3 * ftR()) else if (s.pg < 2) 1 + .3 * tmR() else 1.0 } ?: 1.0)
+fun eHp(): Double = (1 + .35 * ocN()) * (if (S.pg >= 4) Math.pow(1.25, S.fl.toDouble()) else 1.0) * (if (S.mut?.id == "swarm") .7 else 1.0)
+fun eSp(): Double = (1 + .03 * ocN()) * (if (S.mut?.id == "fast") 1.3 else 1.0) * (if (S.pg >= 4) 1 + Math.min(.4, .015 * S.fl + .1 * ftR()) else if (S.pg < 2) 1 + Math.min(.35, .1 * tmR()) else 1.0)
 
 fun xv(k: String): Int {
     val x = SV.x
@@ -71,9 +71,9 @@ fun deepUpd(dt: Double) {
     if (S.pg < 4) return
     val M = S.mut?.id; val bf = S.fl % 5 == 0
     if (S.sc <= 0) {
-        val n = Math.min(if (M == "swarm") 8 else if (bf) 2 else 5, CAP - aliveN())
+        val n = Math.min(if (M == "swarm") 8 else if (bf) 2 else 5 + Math.floor(ftR() * 3).toInt(), CAP - aliveN())
         for (i in 0 until n) spawn(pickE())
-        S.sc = if (M == "swarm") .35 else if (bf) 1.6 else .55
+        S.sc = (if (M == "swarm") .35 else if (bf) 1.6 else .55) * (1 - .45 * ftR())
     }
     if (M == "drain" && P.hp > 0) P.hp = Math.max(1.0, P.hp - P.mh * .012 * dt)
     S.mk2 -= dt

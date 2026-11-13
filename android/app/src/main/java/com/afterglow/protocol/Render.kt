@@ -91,6 +91,11 @@ fun initSprites() {
     ES["bomb"] = EM(s["BMB"]!!, "#59608f", "#8a93c8", "#2f3354", 11, 12, 1, -1, 0)
     ES["hboss"] = ES["boss"]!!
     for ((k, d) in ELD) if (d.r.isNotEmpty()) ES["E_$k"] = EM(d.r, d.p[0], d.p[1], d.p[2], d.a[0], d.a[1], d.a[2], d.a[3], d.a[4])
+    for ((k, d) in MON) { // 기본 몬스터 새 도트
+        val c = mkS(d.r.map(::MR), d.p); val c2 = frB(c, d.a[0], d.a[1], d.a[2], d.a[3], d.a[4])
+        ES[k] = Es(c, c2, tintC(c, "#fff", 1.0), tintC(c2, "#fff", 1.0), tintC(c, "#9ef", .55), tintC(c2, "#9ef", .55))
+    }
+    ES["mini"] = ES["split"]!!
     s["BS2"]?.let { rows -> // 잔광 거수 새 도트(32×30, 13색)
         val c = mkS(rows.map(::MR), BSP); val c2 = frB(c, 25, 30, 1, -1, 0)
         ES["boss"] = Es(c, c2, tintC(c, "#fff", 1.0), tintC(c2, "#fff", 1.0), tintC(c, "#9ef", .55), tintC(c2, "#9ef", .55)); ES["hboss"] = ES["boss"]!!

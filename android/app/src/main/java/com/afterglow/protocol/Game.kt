@@ -450,11 +450,14 @@ fun fire(k: String, w: Wp, rp: Rp? = null): Boolean {
 class Ed(val hp: Double, val sp: Double, val r: Double, val xp: Double, val sc: Double)
 val ED = mapOf("crawl" to Ed(30.0, 70.0, 11.0, 1.0, 2.0), "bat" to Ed(18.0, 95.0, 10.0, 2.0, 2.0), "charge" to Ed(60.0, 50.0, 12.0, 4.0, 2.0), "split" to Ed(45.0, 60.0, 12.0, 2.0, 2.0),
     "mini" to Ed(10.0, 95.0, 7.0, 1.0, 1.0), "spit" to Ed(35.0, 60.0, 12.0, 5.0, 2.0), "bomb" to Ed(26.0, 90.0, 11.0, 3.0, 2.0), "hboss" to Ed(9999.0, 0.0, 34.0, 0.0, 4.0),
-    "rival" to Ed(1.0, 100.0, 28.0, 0.0, 5.0), "tank" to Ed(150.0, 45.0, 17.0, 8.0, 3.0), "boss" to Ed(5000.0, 55.0, 40.0, 0.0, 3.0))
+    "rival" to Ed(1.0, 100.0, 28.0, 0.0, 5.0), "tank" to Ed(150.0, 45.0, 17.0, 8.0, 2.0), "boss" to Ed(5000.0, 55.0, 40.0, 0.0, 3.0))
 val CLR = mapOf("crawl" to "#e55", "bat" to "#e88", "charge" to "#b86a3a", "split" to "#6d4", "mini" to "#6d4", "spit" to "#c4c", "tank" to "#6a8aa8", "bomb" to "#fa3", "hboss" to "#c4506a", "rival" to "#ff8ad8", "boss" to "#c4506a")
 const val CAP = 150
 fun aliveN(): Int { var n = 0; S.en.each { if (!it.dead && (!it.inv || it.hid)) n++ }; return n }
-fun tmf() = if (S.pg >= 4) 14 + S.fl * 1.5 else if (S.t < 300) S.t / 30 else 10 + (S.t - 300) / 90
+/** 난이도 곡선(웹판 tmf와 같음): 1페이지 t/30×(1+t/600)(상한 45), 심층은 층마다 급격히 + 층 안 45초 동안에도 오름 */
+fun ftR() = Math.min(S.t, 45.0) / 45
+fun tmR() = Math.pow(Math.min(S.t, 540.0) / 300, 2.0)
+fun tmf() = if (S.pg >= 4) 14 + S.fl * 2.5 + S.fl * S.fl * .1 + ftR() * (4 + S.fl * .3) else Math.min(45.0, S.t / 30 * (1 + S.t / 600))
 fun pickE(): String {
     val t = S.t + (if (S.pg >= 4) 500 else if (S.pg > 1) 150 else 0) + S.xo; val r = rnd()
     if (t > 480 && r < .1) return "tank"
@@ -820,9 +823,9 @@ fun upd(dt0: Double) {
     if (!P.xp.isFinite()) P.xp = 0.0
     S.sc -= dt
     if (S.sc <= 0 && S.pg < 2) {
-        val n = Math.min(Math.min(5, 1 + Math.floor(tm / 2.5).toInt()), CAP - aliveN())
+        val n = Math.min(Math.min(8, 1 + Math.floor(tm / 2.5).toInt()), CAP - aliveN())
         for (i in 0 until n) spawn(pickE())
-        S.sc = Math.max(.3, .85 - .04 * tm) * (if (S.bo?.let { !it.dead && it.k == "boss" } == true) 2.0 else 1.0)
+        S.sc = Math.max(.2, .85 - .04 * tm) * (if (S.bo?.let { !it.dead && it.k == "boss" } == true) 2.0 else 1.0)
     }
     deepUpd(dt); S.tt += dt
     S.elt -= dt
@@ -833,7 +836,7 @@ fun upd(dt0: Double) {
             do { ty = pickE() } while (ty == "mini" && tr++ < 8)
             val e = spawn(ty)
             if (e != null) {
-                e.el = true; e.hp *= 6; e.mh = e.hp; e.sc += 1; e.r = Math.round(e.r * 1.3).toDouble(); e.sp *= 1.05; e.xp *= 5; e.ec = 2.5
+                e.el = true; e.hp *= 6; e.mh = e.hp; e.sc += if (ty == "tank") 2 else 1; e.r = Math.round(e.r * 1.3).toDouble(); e.sp *= 1.05; e.xp *= 5; e.ec = 2.5
                 ELD[ty]?.let { d -> if (d.r.isNotEmpty()) e.c = "E_$ty"; e.en = d.n; e.col = d.p[1] }
                 S.msg = "엘리트 출현! " + (e.en ?: "") + " (처치하면 유물)"; S.mt = 2.5
             }
