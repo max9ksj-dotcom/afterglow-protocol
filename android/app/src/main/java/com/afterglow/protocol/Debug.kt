@@ -133,6 +133,7 @@ private fun fitRun(mode: String) {
                 lvup()
             }
             "fitpause" -> pauseT()
+            "fitelite" -> { s.elt = 1e9; s.sc = 1e9; s.rn = 1e9; s.en.clear(); for ((i, k) in listOf("crawl", "split", "charge", "spit", "tank").withIndex()) { val e = spawn(k, P.x - 120 + (i % 3) * 120, P.y - 170 + (i / 3) * 330) ?: continue; e.el = true; e.hp = 1e9; e.mh = 1e9; e.sc += 1; e.r = Math.round(e.r * 1.3).toDouble(); e.ec = 2.5; ELD[k]?.let { d -> e.c = "E_$k"; e.en = d.n; e.col = d.p[1] } } }
             "fitcap" -> { s.cp.add(Cap(P.x + 90, P.y - 60, 'h', 30.0)); s.cp.add(Cap(P.x - 100, P.y + 40, 'm', 30.0)); s.cp.add(Cap(P.x + 50, P.y + 110, 'b', 30.0)) }
             "fitend" -> { s.pg = 3; s.kills = 12345; s.na.addAll(ACH.take(5).map { it.n }); s.cr0 = 12; s.bg = true; end(true) }
         }

@@ -25,6 +25,7 @@ class En(val k: String) {
     var tl = 0.0; var dx = 0.0; var dy = 0.0; var tr: Double? = null; var rg = false; var na = 0; var lp: String? = null; var sm = 0.0
     var php: Int? = null; var dmf = 1.0; var sm2 = 0.0; var tp: Double? = null; var cast = 0; var cw: String? = null
     var wl: List<String>? = null; var cid: String? = null; var rd: String? = null; var dcv = 12.0; var ax: Int? = null
+    var en: String? = null; var ec = 0.0; var sh = 0.0; var pst = 0; var cc = 0; var ds = false; var bag = ArrayList<String>(); var bgr = false
 }
 class Pl {
     var x = 0.0; var y = 0.0; var hp = 100.0; var mh = 100.0; var mh0 = 100.0; var xp = 0.0; var lv = 1; var nx = 8.0; var inv = 0.0
@@ -302,8 +303,9 @@ fun hit(e: En, d0: Double, c0: String? = null) {
     val c = c0 ?: S.cc
     val m = stat()
     val cr = !S.xl && rnd() < m.cr
-    val d = d0 * m.dm * (if (cr) m.cd else 1.0) * (if (e.boss) m.bd else 1.0) * (if (e.k == "tank") .6 else 1.0) * (if (e.k == "rival") .7 else 1.0) *
+    var d = d0 * m.dm * (if (cr) m.cd else 1.0) * (if (e.boss) m.bd else 1.0) * (if (e.k == "tank") .6 else 1.0) * (if (e.k == "rival") .7 else 1.0) *
         (if (rlc("core") > 0 && e.hp < e.mh * .3) 1 + .5 * rlc("core") else 1.0)
+    if (e.sh > 0) d *= .3
     e.hp -= d; e.fl = .09; e.sq = 1.0
     if (cr && rlc("arcx") > 0 && !S.xl) relArc(e, d)
     val a = atan2(e.y - P.y, e.x - P.x)
@@ -323,7 +325,10 @@ fun hit(e: En, d0: Double, c0: String? = null) {
             S.dc = 2.4; S.bx = e.x; S.by = e.y; S.bg = true; S.ex = 0.0
             S.en.each { o -> if (o !== e && !o.dead) { o.dead = true; burst(o.x, o.y, 5.0, o.col, 200.0, .4, 3.0) } }
         }
-        if (e.k == "split") { spawn("mini", e.x - 8, e.y); spawn("mini", e.x + 8, e.y) }
+        if (e.k == "split") {
+            if (e.el) { for (i in 0 until 6) spawn("mini", e.x + cos(i * 1.047) * 24, e.y + sin(i * 1.047) * 24); for (i in 0 until 12) hb(e.x, e.y, i * .5236, 130.0, 8.0, 0.0, null) }
+            else { spawn("mini", e.x - 8, e.y); spawn("mini", e.x + 8, e.y) }
+        }
         S.gm.add(Gem(e.x, e.y, if (e.boss) 60.0 else e.xp, e.k))
         if (!e.boss && e.k != "mini" && (e.el || rnd() < CPC)) capDrop(e.x, e.y)
         burst(e.x, e.y, if (e.boss) 70.0 else 16.0, e.col, 320.0, .6, 4.0); burst(e.x, e.y, 6.0, "#fff", 260.0, .3, 3.0); fxR(e.x, e.y, e.r * 2.4, e.col, .3)
@@ -484,8 +489,8 @@ fun bRing(e: En, n: Int, off: Double, spd: Double, d: Double) {
     for (i in 0 until n) hb(e.x, e.y, off + i * TAU / n, spd, d, 0.0, null)
     fxR(e.x, e.y, e.r * 2.2, "#ff7744", .35); snd(180.0, .2, "square", .06)
 }
-val BPTN = mapOf("slam" to "내려찍기", "ring" to "잔광 방출", "stomp" to "연속 강타", "cross" to "균열 광선")
-fun bptFire(k: String, e: En, rg: Boolean) {
+val BPTN = mapOf("slam" to "내려찍기", "ring" to "잔광 방출", "stomp" to "연속 강타", "cross" to "균열 광선", "spiral" to "회전 탄막", "seek" to "추적 구체")
+fun bptFire(k: String, e: En, rg: Boolean, du: Double = 0.0) {
     when (k) {
         "slam" -> bossAtk(e)
         "ring" -> {
@@ -503,12 +508,72 @@ fun bptFire(k: String, e: En, rg: Boolean) {
             val o = if (rnd() < .5) 0.0 else .785; val n = if (rg) 8 else 4
             for (i in 0 until n) hbeam(e.x, e.y, o + i * TAU / n, 900.0, 15.0, 20.0, 1.05, "#ff5a3a", null)
         }
+        "spiral" -> {
+            val arms = if (rg) 4 else 3; val dur = if (du > 0) du else if (rg) 2.2 else 1.6; val o = rnd() * TAU; val dir = if (rnd() < .5) 1 else -1
+            fxO(e.x, e.y, e.r * 2.2, "#ffaa44", .5)
+            var i = 0
+            while (i < dur / .12) { val ii = i; S.q.add(Q(.5 + ii * .12) { if (!e.dead) for (j in 0 until arms) hb(e.x, e.y, o + j * TAU / arms + dir * ii * .23, 150.0, 9.0, 0.0, null) }); i++ }
+        }
+        "seek" -> {
+            val n = if (rg) 5 else 3
+            fxO(e.x, e.y, e.r * 2, "#ff66aa", .4)
+            for (i in 0 until n) S.q.add(Q(.4 + i * .25) { if (!e.dead) hb(e.x, e.y, atan2(P.y - e.y, P.x - e.x) + (i - (n - 1) / 2.0) * .5, 105.0, 12.0, 1.5, null) })
+        }
     }
 }
+// ===== 엘리트 패턴 (웹판 eliteAI와 같음): 모두 미리 경고 표시가 나온 뒤에 맞는다 =====
+fun eTag(e: En, t: String) { S.fx.add(Fx('n', .9, .9).also { it.x = e.x - t.length * 5 + 8; it.y = e.y - e.r - 44; it.vs = t }) }
+fun eliteAI(e: En, dt: Double, a: Double, dd: Double) {
+    if (e.sh > 0) e.sh -= dt
+    if (e.k == "charge") {
+        if (e.pst == 2 && e.st == 0) {
+            harea(e.x, e.y, 70.0, 14.0, .35, "#ff9a5a"); e.cc++
+            if (e.cc < 3) { e.st = 1; e.cd = .35; e.dx = cos(a); e.dy = sin(a) } else { e.cc = 0; e.cd = 3.2 }
+        }
+        if (e.pst != 1 && e.st == 1 && e.cc == 0) eTag(e, "3연속 돌진")
+        e.pst = e.st; return
+    }
+    e.ec -= dt
+    if (e.ec > 0 || dd > 520) return
+    when (e.k) {
+        "crawl" -> {
+            e.ec = 5.5; val o = rnd() * TAU
+            for (i in 0 until 4) {
+                val an = o + i * 1.571; val x = e.x + cos(an) * 70; val y = e.y + sin(an) * 70
+                fxD(x, y, 22.0, .7)
+                S.q.add(Q(.7) { if (!e.dead && spawn("crawl", x, y) != null) burst(x, y, 10.0, "#ff6070", 200.0, .4, 3.0) })
+            }
+            eTag(e, "기생 소환")
+        }
+        "split" -> {
+            e.ec = 4.5; fxO(e.x, e.y, e.r * 2.4, "#2bb59a", .5)
+            S.q.add(Q(.5) { if (!e.dead) { val o = rnd() * 6; for (i in 0 until 8) hb(e.x, e.y, o + i * .785, 120.0, 8.0, 0.0, null); snd(300.0, .15, "square", .05) } })
+            eTag(e, "포자 방출")
+        }
+        "spit" -> {
+            e.ec = 3.6; fxO(e.x, e.y, e.r * 2, "#c69aff", .5)
+            S.q.add(Q(.5) { if (!e.dead) { val b = atan2(P.y - e.y, P.x - e.x); for (i in -2..2) hb(e.x, e.y, b + i * .22, 190.0, 9.0, 0.0, null); snd(700.0, .1, "square", .05) } })
+            eTag(e, "독침 부채")
+        }
+        "tank" -> { e.ec = 7.0; e.sh = 2.2; fxR(e.x, e.y, e.r * 2, "#9ec8e8", .4); harea(e.x, e.y, 150.0, 18.0, 1.0, "#9ec8e8"); eTag(e, "갑각 충격파") }
+    }
+}
+/** 보스 최후의 발악(체력 20% 아래, 한 번): 탄을 지우고 잠깐 무적이 된 뒤 고리 3번 + 회전 탄막 */
+fun bossLast(e: En) {
+    e.ds = true; e.inv = true; S.ep.clear(); S.q.add(Q(1.0) { e.inv = false }); e.cd = Math.max(e.cd, 4.5); e.st = 0
+    S.msg = (if (S.pg >= 4) "심층 수호자" else "잔광 거수") + " — 최후의 발악!"; S.mt = 2.4; S.bt = .5; shake(14.0); stop(.15); snd(45.0, .8, "sawtooth", .13)
+    fxR(e.x, e.y, 360.0, "#ffd24a", .8); fxO(e.x, e.y, 160.0, "#ffffff", .2, true); burst(e.x, e.y, 60.0, "#ffd24a", 520.0, .8, 5.0); bugName(e, "최후의 발악")
+    for (i in 0 until 3) S.q.add(Q(1.0 + i * .5) { if (!e.dead) bRing(e, 20, i * .16, 160.0, 10.0) })
+    bptFire("spiral", e, true, 2.6)
+}
+/** 패턴 주머니: 한 번 나온 패턴은 나머지가 다 나올 때까지 다시 나오지 않는다 */
 fun bossPick(e: En, rg: Boolean): String {
-    val pool = if (rg) listOf("slam", "ring", "stomp", "cross", "ring") else listOf("slam", "ring", "stomp", "cross")
-    var k: String; var t = 0
-    do { k = pool[(rnd() * pool.size).toInt()] } while (k == e.lp && t++ < 6)
+    if (e.bag.isEmpty() || e.bgr != rg) {
+        val pool = if (rg) mutableListOf("slam", "ring", "stomp", "cross", "spiral", "seek", "ring") else mutableListOf("slam", "ring", "stomp", "cross", "spiral", "seek")
+        pool.shuffle(); e.bag = ArrayList(pool); e.bgr = rg
+        if (e.bag.last() == e.lp) e.bag.add(0, e.bag.removeAt(e.bag.size - 1))
+    }
+    val k = e.bag.removeAt(e.bag.size - 1)
     e.lp = k
     return k
 }
@@ -746,7 +811,7 @@ fun upd(dt0: Double) {
     if (S.sc <= 0 && S.pg < 2) {
         val n = Math.min(Math.min(5, 1 + Math.floor(tm / 2.5).toInt()), CAP - aliveN())
         for (i in 0 until n) spawn(pickE())
-        S.sc = Math.max(.3, .85 - .04 * tm)
+        S.sc = Math.max(.3, .85 - .04 * tm) * (if (S.bo?.let { !it.dead && it.k == "boss" } == true) 2.0 else 1.0)
     }
     deepUpd(dt); S.tt += dt
     S.elt -= dt
@@ -756,11 +821,15 @@ fun upd(dt0: Double) {
             var ty: String; var tr = 0
             do { ty = pickE() } while (ty in listOf("bat", "bomb", "mini") && tr++ < 8)
             val e = spawn(ty)
-            if (e != null) { e.el = true; e.hp *= 6; e.mh = e.hp; e.sc += 1; e.r = Math.round(e.r * 1.3).toDouble(); e.sp *= 1.05; e.xp *= 5; S.msg = "엘리트 출현! (처치하면 유물)"; S.mt = 2.5 }
+            if (e != null) {
+                e.el = true; e.hp *= 6; e.mh = e.hp; e.sc += 1; e.r = Math.round(e.r * 1.3).toDouble(); e.sp *= 1.05; e.xp *= 5; e.ec = 2.5
+                ELD[ty]?.let { d -> e.c = "E_$ty"; e.en = d.n; e.col = d.p[1] }
+                S.msg = "엘리트 출현! " + (e.en ?: "") + " (처치하면 유물)"; S.mt = 2.5
+            }
         }
     }
     S.rn -= dt
-    if (S.rn <= 0 && S.t > 45 && S.pg < 2) {
+    if (S.rn <= 0 && S.t > 45 && S.pg < 2 && S.bo?.dead != false) {
         S.rn = 24.0
         var c = 0
         for (i in 0 until 8) {
@@ -1025,6 +1094,7 @@ private fun enemyStep(e: En, dt: Double, m: Stat) {
         "boss" -> {
             val rage = e.hp < e.mh * .5
             if (rage && !e.rg) bossRage(e)
+            if (e.rg && !e.ds && e.hp < e.mh * .2) bossLast(e)
             if (e.st == 0) {
                 if (rage) sp *= 1.4
                 if (e.cd <= 0) {
@@ -1046,6 +1116,7 @@ private fun enemyStep(e: En, dt: Double, m: Stat) {
             }
         }
     }
+    if (e.el && ELD.containsKey(e.k)) eliteAI(e, dt, a, dd)
     e.x += (cos(a) * sp + vx + e.kx) * dt; e.y += (sin(a) * sp + vy + e.ky) * dt
     val kd = Math.pow(.003, dt)
     e.kx *= kd; e.ky *= kd

@@ -15,7 +15,7 @@ WD:Object.keys(WD).map(k=>Object.assign({id:k},WD[k])),
 NL:NL.map(n=>({id:n.id,t:n.t,x:n.x,y:n.y,c:n.c,nm:n.nm,e:Object.keys(n.e).map(k=>[k,n.e[k]]),rq:n.rq,ex:n.ex,rg:n.rg})),
 LK,REL,UPS,OCN,MUT,AWK,ACH,LOG,PD:Object.keys(PD).map(k=>[k].concat(PD[k])),IC,ICP,PH,TOP,LG,
 CHR:CHR.map(c=>({id:c.id,n:c.n,d:c.d,m:c.m,pal:c.pal,ex:c.ex,cd:c.cd})),
-SPR:{CR,CH,SPL,SPT,TK,BS,BMB},GEMS:{G_DI,G_OR,G_DR,G_SQ,G_ST,G_CR},WSH,WV,WP});`;
+SPR:{CR,CH,SPL,SPT,TK,BS,BMB},ELD,GEMS:{G_DI,G_OR,G_DR,G_SQ,G_ST,G_CR},WSH,WV,WP});`;
 vm.runInContext(js+dump,sb);
 // 원본의 shd()는 짧은 색(#f6f)을 계산하지 못해 '#4707NaN' 같은 값을 만든다(브라우저는 무시). 여기서 바른 색으로 고친다.
 const J=JSON.parse(sb.__D),full=c=>c.length==4?'#'+c[1]+c[1]+c[2]+c[2]+c[3]+c[3]:c;

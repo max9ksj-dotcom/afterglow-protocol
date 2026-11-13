@@ -90,6 +90,7 @@ fun initSprites() {
     ES["mini"] = ES["split"]!!
     ES["bomb"] = EM(s["BMB"]!!, "#59608f", "#8a93c8", "#2f3354", 11, 12, 1, -1, 0)
     ES["hboss"] = ES["boss"]!!
+    for ((k, d) in ELD) ES["E_$k"] = EM(d.r, d.p[0], d.p[1], d.p[2], d.a[0], d.a[1], d.a[2], d.a[3], d.a[4])
     val blank = Spr(Bitmap.createBitmap(14, 5, Bitmap.Config.ARGB_8888))
     ES["bat"] = Es(blank, blank, blank, blank, blank, blank)
     val g = dataGems
@@ -539,6 +540,13 @@ fun draw(g: G) {
         val bb = if (e.k == "hboss") rd(sin(S.t * 2) * 6) else if (e.k == "bat") rd(sin(S.t * 14 + e.ph) * 3) else if (F && (e.k == "split" || e.k == "crawl")) -e.sc else 0.0
         if ((e.k == "charge" || e.k == "boss" || e.k == "rival") && e.st == 1) { g.strokeStyle = "rgba(255,80,60,.6)"; g.lineWidth = 2.0; g.line(e.x, e.y, e.x + e.dx * 220, e.y + e.dy * 220) }
         if (e.k == "boss" && e.rg) { g.save(); g.lighter = true; g.globalAlpha = .22 + .14 * sin(S.t * 10); g.fillStyle = "#ff3b3b"; g.circleFill(e.x, e.y, e.r * 1.9); g.restore() }
+        if (e.k == "boss") {
+            val ac = if (e.ds) "#ffd24a" else "#ff5a3a"
+            g.save(); g.lighter = true; g.strokeStyle = ac; g.lineWidth = 3.0; g.globalAlpha = .25 + .15 * sin(S.t * 4); g.circleStroke(e.x, e.y, e.r * 1.45 + sin(S.t * 3) * 4)
+            g.globalAlpha = .12; g.fillStyle = ac; g.circleFill(e.x, e.y, e.r * 1.2); g.restore()
+            g.fillStyle = "rgba(0,0,0,.4)"; g.fillRect(rd(e.x - w * .6), rd(e.y + e.r - 4), rd(w * 1.2), 8.0)
+        }
+        if (e.sh > 0) { g.strokeStyle = "#9ec8e8"; g.lineWidth = 3.0; g.globalAlpha = .5 + .3 * sin(S.t * 20); g.circleStroke(e.x, e.y, e.r + 8); g.globalAlpha = 1.0 }
         g.fillStyle = "rgba(0,0,0,.3)"; g.fillRect(rd(e.x - w / 2), rd(e.y + e.r - 2), w, 4.0)
         if (e.k == "bat") drawWorm(g, e)
         else {
@@ -558,6 +566,7 @@ fun draw(g: G) {
         if (e.el && !e.dead) {
             g.strokeStyle = "#ffd24a"; g.lineWidth = 2.0; g.circleStroke(rd(e.x), rd(e.y), e.r + 10 + sin(S.t * 6) * 2)
             g.fillStyle = "#2a1018"; g.fillRect(e.x - 24, e.y - e.r - 26, 48.0, 5.0); g.fillStyle = "#ffd24a"; g.fillRect(e.x - 24, e.y - e.r - 26, 48 * Math.max(0.0, e.hp / e.mh), 5.0)
+            e.en?.let { n -> g.font(11.0, true); g.textAlign = "center"; g.lineWidth = 3.0; g.strokeStyle = "#000"; g.strokeText(n, e.x, e.y - e.r - 31); g.fillStyle = "#ffd24a"; g.fillText(n, e.x, e.y - e.r - 31); g.textAlign = "left" }
         }
         val cw = e.cw
         if (e.k == "rival" && cw != null) {
@@ -728,7 +737,7 @@ fun draw(g: G) {
     topLay()
     drawHud(g)
     g.save(); g.translate(0.0, PY - 86)
-    if ((S.pg < 2 || S.pg >= 4) && bo != null && !bo.dead && bo.k == "boss" && S.cin <= 0) drawBossBar(g, bo, if (S.pg >= 4) "심층 수호자 — " + S.fl + "층" else "잔광 거수 — 심연의 수호자", if (bo.rg) "분노" else "", doubleArrayOf(.5), "#ff3b3b")
+    if ((S.pg < 2 || S.pg >= 4) && bo != null && !bo.dead && bo.k == "boss" && S.cin <= 0) drawBossBar(g, bo, if (S.pg >= 4) "심층 수호자 — " + S.fl + "층" else "잔광 거수 — 심연의 수호자", if (bo.ds) "발악" else if (bo.rg) "분노" else "", doubleArrayOf(.5, .2), "#ff3b3b")
     val mu = S.mut
     if (S.pg >= 4 && S.T < 1e8 && mu != null) {
         val rem = Math.max(0.0, S.T - S.t); val w2 = Math.min(300.0, W - 24); val x0 = rd(W / 2 - w2 / 2)

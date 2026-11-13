@@ -43,6 +43,9 @@ val WP = ArrayList<Wpx>()
 var dataTop: List<String> = emptyList()
 var dataLg: List<List<String>> = emptyList()
 var dataSpr: Map<String, List<String>> = emptyMap()
+/** 엘리트 5종: 이름, 도트(왼쪽 절반), 색 3가지, 다리 흔들림 인자 */
+class Eld(val n: String, val r: List<String>, val p: List<String>, val a: List<Int>)
+val ELD = LinkedHashMap<String, Eld>()
 var dataGems: Map<String, List<String>> = emptyMap()
 val WSH = HashMap<String, List<String>>()
 val WV = HashMap<String, Pair<String, Map<Char, String>>>()
@@ -124,6 +127,7 @@ fun loadData(ctx: Context) {
     dataTop = strs(j.getJSONArray("TOP"))
     j.getJSONArray("LG").let { a -> dataLg = List(a.length()) { strs(a.getJSONArray(it)) } }
     dataSpr = rowsMap(j.getJSONObject("SPR"))
+    j.optJSONObject("ELD")?.let { o -> for (k in o.keys()) { val d = o.getJSONObject(k); val aa = d.getJSONArray("a"); ELD[k] = Eld(d.getString("n"), strs(d.getJSONArray("r")), strs(d.getJSONArray("p")), List(aa.length()) { aa.getInt(it) }) } }
     dataGems = rowsMap(j.getJSONObject("GEMS"))
     WSH.putAll(rowsMap(j.getJSONObject("WSH")))
     j.getJSONObject("WV").let { o ->
