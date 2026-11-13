@@ -450,10 +450,10 @@ fun fire(k: String, w: Wp, rp: Rp? = null): Boolean {
 class Ed(val hp: Double, val sp: Double, val r: Double, val xp: Double, val sc: Double)
 val ED = mapOf("crawl" to Ed(30.0, 70.0, 11.0, 1.0, 2.0), "bat" to Ed(18.0, 95.0, 10.0, 2.0, 2.0), "charge" to Ed(60.0, 50.0, 12.0, 4.0, 2.0), "split" to Ed(45.0, 60.0, 12.0, 2.0, 2.0),
     "mini" to Ed(10.0, 95.0, 7.0, 1.0, 1.0), "spit" to Ed(35.0, 60.0, 12.0, 5.0, 2.0), "bomb" to Ed(26.0, 90.0, 11.0, 3.0, 2.0), "hboss" to Ed(9999.0, 0.0, 34.0, 0.0, 4.0),
-    "rival" to Ed(1.0, 100.0, 28.0, 0.0, 4.0), "tank" to Ed(150.0, 45.0, 17.0, 8.0, 3.0), "boss" to Ed(5000.0, 55.0, 40.0, 0.0, 3.0))
+    "rival" to Ed(1.0, 100.0, 28.0, 0.0, 5.0), "tank" to Ed(150.0, 45.0, 17.0, 8.0, 3.0), "boss" to Ed(5000.0, 55.0, 40.0, 0.0, 3.0))
 val CLR = mapOf("crawl" to "#e55", "bat" to "#e88", "charge" to "#b86a3a", "split" to "#6d4", "mini" to "#6d4", "spit" to "#c4c", "tank" to "#6a8aa8", "bomb" to "#fa3", "hboss" to "#c4506a", "rival" to "#ff8ad8", "boss" to "#c4506a")
 const val CAP = 150
-fun aliveN(): Int { var n = 0; S.en.each { if (!it.dead && !it.inv) n++ }; return n }
+fun aliveN(): Int { var n = 0; S.en.each { if (!it.dead && (!it.inv || it.hid)) n++ }; return n }
 fun tmf() = if (S.pg >= 4) 14 + S.fl * 1.5 else if (S.t < 300) S.t / 30 else 10 + (S.t - 300) / 90
 fun pickE(): String {
     val t = S.t + (if (S.pg >= 4) 500 else if (S.pg > 1) 150 else 0) + S.xo; val r = rnd()
@@ -1262,7 +1262,7 @@ fun nextPage() {
 fun startP3() {
     S.tf = .001; S.t3 = false
     val c = CHR[(rnd() * CHR.size).toInt()]
-    S.rivalId = c.id; S.rcs = HSC[c.id]!![0].n
+    S.rivalId = c.id; S.rcs = rivalES(c.id).n
     snd(80.0, .7, "sawtooth", .12)
 }
 fun tfUpd(dt: Double) {
@@ -1279,7 +1279,7 @@ fun toRival() {
     clearField()
     S.ck = null; S.hb = null; S.pull = null; P.slow = 0.0; S.hf = 1.0; S.cb = 0; S.nk = 0.0; S.lt = -9.0; P.hp = Math.max(P.hp, P.mh * .6); P.inv = 2.5
     val h = HSC[c.id]!!
-    ES["rival"] = Es(h[0].n, h[2].n, h[0].w, h[2].w, h[0].n, h[2].n)
+    ES["rival"] = rivalES(c.id)
     val e = spawn("rival", P.x, P.y - 330)!!
     e.boss = true; e.hp = P.mh * 50 * eHp(); e.mh = e.hp; e.wl = bs + fz; e.cid = c.id; e.col = "#ff8ad8"; e.cd = 2.0
     S.bo = e; S.msg = "ERROR_CLONE 출현: " + c.n; S.mt = 4.0

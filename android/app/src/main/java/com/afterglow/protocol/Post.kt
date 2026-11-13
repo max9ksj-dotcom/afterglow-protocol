@@ -56,8 +56,8 @@ fun deepBoss() {
         val c = CHR[(rnd() * CHR.size).toInt()]; val h = HSC[c.id]!!
         val bs = listOf("pulse", "blade", "rail", "grav", "orbit", "arc", "frost", "mine").shuffled().take(3)
         val fz = WD.values.filter { it.fz }.map { it.id }.shuffled().take(2)
-        S.rivalId = c.id; S.rcs = h[0].n; S.hf = 1.0
-        ES["rival"] = Es(h[0].n, h[2].n, h[0].w, h[2].w, h[0].n, h[2].n)
+        S.rivalId = c.id; S.rcs = rivalES(c.id).n; S.hf = 1.0
+        ES["rival"] = rivalES(c.id)
         val e = spawn("rival", P.x, P.y - 330)!!
         e.boss = true; e.hp = P.mh * 30 * eHp(); e.mh = e.hp; e.wl = bs + fz; e.cid = c.id; e.col = "#ff8ad8"; e.cd = 2.0
         S.bo = e; S.msg = "거울 층 — " + c.n; S.mt = 3.0

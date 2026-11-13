@@ -95,6 +95,10 @@ fun initSprites() {
         val c = mkS(rows.map(::MR), BSP); val c2 = frB(c, 25, 30, 1, -1, 0)
         ES["boss"] = Es(c, c2, tintC(c, "#fff", 1.0), tintC(c2, "#fff", 1.0), tintC(c, "#9ef", .55), tintC(c2, "#9ef", .55)); ES["hboss"] = ES["boss"]!!
     }
+    s["HB2"]?.let { rows -> // ERROR.exe 전용 도트(32×30)
+        val c = mkS(rows.map(::MR), HBP); val c2 = frB(c, 20, 30, -1, 1, 0)
+        ES["hboss"] = Es(c, c2, tintC(c, "#fff", 1.0), tintC(c2, "#fff", 1.0), tintC(c, "#9ef", .55), tintC(c2, "#9ef", .55))
+    }
     val blank = Spr(Bitmap.createBitmap(14, 5, Bitmap.Config.ARGB_8888))
     ES["bat"] = Es(blank, blank, blank, blank, blank, blank)
     val g = dataGems
@@ -124,6 +128,30 @@ fun wsp(k: String): Spr = WSPR.getOrPut(k) {
     val pal = hashMapOf('o' to "#14102a", 'w' to "#ffffff", 'y' to "#fff27a", 'C' to "#e8f0ff", 'c' to "#888", 'H' to "#ccc", 'A' to "#555")
     pal.putAll(v.second)
     mkS(WSH[v.first]!!, pal)
+}
+/** 3페이지 ERROR_CLONE: 캐릭터 그림을 '오염된 복제'로 바꾼다(보라 톤, 자홍 테두리, 좌우 RGB 번짐, 밝은 곳은 붉은 눈빛). 웹판 cloneSpr와 같음 */
+fun cloneSpr(src: Spr): Spr {
+    val sb = src.b; val w = sb.width; val h = sb.height; val W2 = w + 4; val H2 = h + 4
+    val px = IntArray(w * h); sb.getPixels(px, 0, w, 0, 0, w, h)
+    val out = IntArray(W2 * H2)
+    fun A(i: Int, j: Int) = i >= 0 && j >= 0 && i < w && j < h && (px[j * w + i] ushr 24) > 40
+    fun argb(a: Int, r: Int, g: Int, b: Int) = (a shl 24) or (r shl 16) or (g shl 8) or b
+    for (Y in 0 until H2) for (X in 0 until W2) {
+        val i = X - 2; val j = Y - 2; val q = Y * W2 + X
+        if (A(i, j)) {
+            val c = px[j * w + i]; val l = (((c shr 16) and 255) * .3 + ((c shr 8) and 255) * .59 + (c and 255) * .11) / 255
+            out[q] = if (l > .82) argb(255, 255, 60, 90) else { val t = Math.min(1.0, l * 1.25); argb(255, Math.round(34 + t * 221).toInt(), Math.round(14 + t * 124).toInt(), Math.round(56 + t * 160).toInt()) }
+        } else if (A(i - 1, j) || A(i + 1, j) || A(i, j - 1) || A(i, j + 1)) out[q] = argb(255, 255, 59, 155)
+        else if (A(i + 2, j)) out[q] = argb(150, 59, 244, 255)
+        else if (A(i - 2, j)) out[q] = argb(150, 255, 59, 155)
+    }
+    val b = Bitmap.createBitmap(W2, H2, Bitmap.Config.ARGB_8888); b.setPixels(out, 0, W2, 0, 0, W2, H2)
+    return Spr(b, src.w * W2 / w, src.h * H2 / h)
+}
+private val RVC = HashMap<String, Es>()
+fun rivalES(id: String): Es = RVC.getOrPut(id) {
+    val h = HSC[id]!!; val c0 = cloneSpr(h[0].n); val c2 = cloneSpr(h[2].n)
+    Es(c0, c2, tintC(c0, "#fff", 1.0), tintC(c2, "#fff", 1.0), c0, c2)
 }
 fun ric(k: String): Spr = RIC.getOrPut(k) { mkS(IC[k]!!, ICP) }
 

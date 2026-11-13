@@ -44,6 +44,8 @@ val WP = ArrayList<Wpx>()
 val WPE = ArrayList<Wpx>()
 /** 잔광 거수 새 도트의 색 */
 var BSP: Map<Char, String> = emptyMap()
+/** ERROR.exe(2페이지 공중 보스) 도트의 색 */
+var HBP: Map<Char, String> = emptyMap()
 var dataTop: List<String> = emptyList()
 var dataLg: List<List<String>> = emptyList()
 var dataSpr: Map<String, List<String>> = emptyMap()
@@ -143,6 +145,7 @@ fun loadData(ctx: Context) {
     j.optJSONArray("WPE")?.let { a ->
         for (i in 0 until a.length()) { val p = a.getJSONArray(i); WPE.add(Wpx(p.getInt(0), p.getDouble(1), p.getString(2), p.getString(3))) }
     }
+    j.optJSONObject("HBP")?.let { o -> val m = HashMap<Char, String>(); for (k in o.keys()) m[k[0]] = o.getString(k); HBP = m }
     j.optJSONObject("BSP")?.let { o -> val m = HashMap<Char, String>(); for (k in o.keys()) m[k[0]] = o.getString(k); BSP = m
     }
 }
