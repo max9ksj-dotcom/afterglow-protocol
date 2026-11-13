@@ -40,6 +40,10 @@ val CHR = ArrayList<Chr>()
 val IC = HashMap<String, List<String>>()
 val ICP = HashMap<Char, String>()
 val WP = ArrayList<Wpx>()
+/** 엘리트 지렁이(심연 지렁이) 도트: 보라색 몸 + 금색 등가시 */
+val WPE = ArrayList<Wpx>()
+/** 잔광 거수 새 도트의 색 */
+var BSP: Map<Char, String> = emptyMap()
 var dataTop: List<String> = emptyList()
 var dataLg: List<List<String>> = emptyList()
 var dataSpr: Map<String, List<String>> = emptyMap()
@@ -127,7 +131,7 @@ fun loadData(ctx: Context) {
     dataTop = strs(j.getJSONArray("TOP"))
     j.getJSONArray("LG").let { a -> dataLg = List(a.length()) { strs(a.getJSONArray(it)) } }
     dataSpr = rowsMap(j.getJSONObject("SPR"))
-    j.optJSONObject("ELD")?.let { o -> for (k in o.keys()) { val d = o.getJSONObject(k); val aa = d.getJSONArray("a"); ELD[k] = Eld(d.getString("n"), strs(d.getJSONArray("r")), strs(d.getJSONArray("p")), List(aa.length()) { aa.getInt(it) }) } }
+    j.optJSONObject("ELD")?.let { o -> for (k in o.keys()) { val d = o.getJSONObject(k); val aa = d.optJSONArray("a"); ELD[k] = Eld(d.getString("n"), d.optJSONArray("r")?.let { strs(it) } ?: emptyList(), strs(d.getJSONArray("p")), if (aa == null) emptyList() else List(aa.length()) { aa.getInt(it) }) } }
     dataGems = rowsMap(j.getJSONObject("GEMS"))
     WSH.putAll(rowsMap(j.getJSONObject("WSH")))
     j.getJSONObject("WV").let { o ->
@@ -135,6 +139,11 @@ fun loadData(ctx: Context) {
     }
     j.getJSONArray("WP").let { a ->
         for (i in 0 until a.length()) { val p = a.getJSONArray(i); WP.add(Wpx(p.getInt(0), p.getDouble(1), p.getString(2), p.getString(3))) }
+    }
+    j.optJSONArray("WPE")?.let { a ->
+        for (i in 0 until a.length()) { val p = a.getJSONArray(i); WPE.add(Wpx(p.getInt(0), p.getDouble(1), p.getString(2), p.getString(3))) }
+    }
+    j.optJSONObject("BSP")?.let { o -> val m = HashMap<Char, String>(); for (k in o.keys()) m[k[0]] = o.getString(k); BSP = m
     }
 }
 

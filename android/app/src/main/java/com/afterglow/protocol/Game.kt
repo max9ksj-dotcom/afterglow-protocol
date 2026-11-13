@@ -25,7 +25,7 @@ class En(val k: String) {
     var tl = 0.0; var dx = 0.0; var dy = 0.0; var tr: Double? = null; var rg = false; var na = 0; var lp: String? = null; var sm = 0.0
     var php: Int? = null; var dmf = 1.0; var sm2 = 0.0; var tp: Double? = null; var cast = 0; var cw: String? = null
     var wl: List<String>? = null; var cid: String? = null; var rd: String? = null; var dcv = 12.0; var ax: Int? = null
-    var en: String? = null; var ec = 0.0; var sh = 0.0; var pst = 0; var cc = 0; var ds = false; var bag = ArrayList<String>(); var bgr = false
+    var hid = false; var en: String? = null; var ec = 0.0; var sh = 0.0; var pst = 0; var cc = 0; var ds = false; var bag = ArrayList<String>(); var bgr = false
 }
 class Pl {
     var x = 0.0; var y = 0.0; var hp = 100.0; var mh = 100.0; var mh0 = 100.0; var xp = 0.0; var lv = 1; var nx = 8.0; var inv = 0.0
@@ -450,7 +450,7 @@ fun fire(k: String, w: Wp, rp: Rp? = null): Boolean {
 class Ed(val hp: Double, val sp: Double, val r: Double, val xp: Double, val sc: Double)
 val ED = mapOf("crawl" to Ed(30.0, 70.0, 11.0, 1.0, 2.0), "bat" to Ed(18.0, 95.0, 10.0, 2.0, 2.0), "charge" to Ed(60.0, 50.0, 12.0, 4.0, 2.0), "split" to Ed(45.0, 60.0, 12.0, 2.0, 2.0),
     "mini" to Ed(10.0, 95.0, 7.0, 1.0, 1.0), "spit" to Ed(35.0, 60.0, 12.0, 5.0, 2.0), "bomb" to Ed(26.0, 90.0, 11.0, 3.0, 2.0), "hboss" to Ed(9999.0, 0.0, 34.0, 0.0, 4.0),
-    "rival" to Ed(1.0, 100.0, 28.0, 0.0, 4.0), "tank" to Ed(150.0, 45.0, 17.0, 8.0, 3.0), "boss" to Ed(5000.0, 55.0, 40.0, 0.0, 4.0))
+    "rival" to Ed(1.0, 100.0, 28.0, 0.0, 4.0), "tank" to Ed(150.0, 45.0, 17.0, 8.0, 3.0), "boss" to Ed(5000.0, 55.0, 40.0, 0.0, 3.0))
 val CLR = mapOf("crawl" to "#e55", "bat" to "#e88", "charge" to "#b86a3a", "split" to "#6d4", "mini" to "#6d4", "spit" to "#c4c", "tank" to "#6a8aa8", "bomb" to "#fa3", "hboss" to "#c4506a", "rival" to "#ff8ad8", "boss" to "#c4506a")
 const val CAP = 150
 fun aliveN(): Int { var n = 0; S.en.each { if (!it.dead && !it.inv) n++ }; return n }
@@ -554,6 +554,17 @@ fun eliteAI(e: En, dt: Double, a: Double, dd: Double) {
             e.ec = 3.6; fxO(e.x, e.y, e.r * 2, "#c69aff", .5)
             S.q.add(Q(.5) { if (!e.dead) { val b = atan2(P.y - e.y, P.x - e.x); for (i in -2..2) hb(e.x, e.y, b + i * .22, 190.0, 9.0, 0.0, null); snd(700.0, .1, "square", .05) } })
             eTag(e, "독침 부채")
+        }
+        "bat" -> {
+            e.ec = 6.0; val x = P.x; val y = P.y
+            eTag(e, "잠행 습격"); burst(e.x, e.y, 16.0, "#8a4ad0", 220.0, .5, 3.0); e.inv = true; e.hid = true
+            harea(x, y, 75.0, 16.0, 1.1, "#c9a0ff")
+            S.q.add(Q(1.1) { if (!e.dead) { e.x = x; e.y = y; e.inv = false; e.hid = false; for (i in 0 until 10) hb(x, y, i * .628, 140.0, 8.0, 0.0, null); burst(x, y, 20.0, "#d9b3ff", 300.0, .5, 4.0) } })
+        }
+        "bomb" -> {
+            e.ec = 3.2
+            for (i in 0 until 3) { val an = rnd() * TAU; val r2 = 40 + rnd() * 60; harea(e.x + cos(an) * r2, e.y + sin(an) * r2, 55.0, 12.0, 1.3, "#fa3") }
+            eTag(e, "폭탄 투척")
         }
         "tank" -> { e.ec = 7.0; e.sh = 2.2; fxR(e.x, e.y, e.r * 2, "#9ec8e8", .4); harea(e.x, e.y, 150.0, 18.0, 1.0, "#9ec8e8"); eTag(e, "갑각 충격파") }
     }
@@ -819,11 +830,11 @@ fun upd(dt0: Double) {
         S.elt = if (S.pg < 2) 70.0 else 14.0
         if (!S.en.any { it.el && !it.dead } && aliveN() < CAP) {
             var ty: String; var tr = 0
-            do { ty = pickE() } while (ty in listOf("bat", "bomb", "mini") && tr++ < 8)
+            do { ty = pickE() } while (ty == "mini" && tr++ < 8)
             val e = spawn(ty)
             if (e != null) {
                 e.el = true; e.hp *= 6; e.mh = e.hp; e.sc += 1; e.r = Math.round(e.r * 1.3).toDouble(); e.sp *= 1.05; e.xp *= 5; e.ec = 2.5
-                ELD[ty]?.let { d -> e.c = "E_$ty"; e.en = d.n; e.col = d.p[1] }
+                ELD[ty]?.let { d -> if (d.r.isNotEmpty()) e.c = "E_$ty"; e.en = d.n; e.col = d.p[1] }
                 S.msg = "엘리트 출현! " + (e.en ?: "") + " (처치하면 유물)"; S.mt = 2.5
             }
         }
@@ -1017,15 +1028,16 @@ private fun enemyStep(e: En, dt: Double, m: Stat) {
             if (e.tl > 0) { e.tl -= dt; if (e.tl <= 0) S.ep.add(EP(e.x, e.y, cos(a) * 170, sin(a) * 170, 3.5)) }
         }
         "bomb" -> {
-            if (e.st == 0) { if (dd < 75) { e.st = 1; e.cd = .8; fxD(e.x, e.y, 85.0, .8) } }
+            val BR = if (e.el) 130.0 else 85.0
+            if (e.st == 0) { if (dd < 75 && (!e.el || e.cd <= 0)) { e.st = 1; e.cd = if (e.el) 1.0 else .8; fxD(e.x, e.y, BR, e.cd) } }
             else {
                 sp = 0.0
                 if (e.cd <= 0) {
-                    e.dead = true
+                    if (e.el) { e.st = 0; e.cd = 3.5 } else e.dead = true
                     val x = e.x; val y = e.y
-                    fxR(x, y, 85.0, "#fa3", .35); fxO(x, y, 70.0, "#fff", .12, true); burst(x, y, 26.0, "#fa3", 380.0, .6, 4.0); burst(x, y, 8.0, "#444", 200.0, .7, 5.0)
+                    fxR(x, y, BR, "#fa3", .35); fxO(x, y, 70.0, "#fff", .12, true); burst(x, y, 26.0, "#fa3", 380.0, .6, 4.0); burst(x, y, 8.0, "#444", 200.0, .7, 5.0)
                     shake(7.0); stop(.04); snd(80.0, .3, "sawtooth", .1)
-                    if (hyp(P.x - x, P.y - y) < 95 && P.inv <= 0) { P.hp -= 15 * m.am; P.inv = invT(); S.vg = .5; shake(9.0) }
+                    if (hyp(P.x - x, P.y - y) < BR + 10 && P.inv <= 0) { P.hp -= (if (e.el) 22 else 15) * m.am; P.inv = invT(); S.vg = .5; shake(9.0) }
                 }
             }
         }

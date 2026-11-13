@@ -90,7 +90,11 @@ fun initSprites() {
     ES["mini"] = ES["split"]!!
     ES["bomb"] = EM(s["BMB"]!!, "#59608f", "#8a93c8", "#2f3354", 11, 12, 1, -1, 0)
     ES["hboss"] = ES["boss"]!!
-    for ((k, d) in ELD) ES["E_$k"] = EM(d.r, d.p[0], d.p[1], d.p[2], d.a[0], d.a[1], d.a[2], d.a[3], d.a[4])
+    for ((k, d) in ELD) if (d.r.isNotEmpty()) ES["E_$k"] = EM(d.r, d.p[0], d.p[1], d.p[2], d.a[0], d.a[1], d.a[2], d.a[3], d.a[4])
+    s["BS2"]?.let { rows -> // 잔광 거수 새 도트(32×30, 13색)
+        val c = mkS(rows.map(::MR), BSP); val c2 = frB(c, 25, 30, 1, -1, 0)
+        ES["boss"] = Es(c, c2, tintC(c, "#fff", 1.0), tintC(c2, "#fff", 1.0), tintC(c, "#9ef", .55), tintC(c2, "#9ef", .55)); ES["hboss"] = ES["boss"]!!
+    }
     val blank = Spr(Bitmap.createBitmap(14, 5, Bitmap.Config.ARGB_8888))
     ES["bat"] = Es(blank, blank, blank, blank, blank, blank)
     val g = dataGems
@@ -376,7 +380,7 @@ private fun drawWorm(g: G, e: En) {
     val sg = if (axis == 0) (if (dx < 0) -1 else 1) else (if (dy < 0) -1 else 1)
     val fl0 = e.fl > 0; val sl = e.sl > 0; val t = S.t * 9 + e.ph
     val k = Math.floor((((t / 6.283) % 1) + 1) % 1 * WFR).toInt() % WFR
-    val f = wormFrame(sc, if (fl0) 1 else if (sl) 2 else 0, k)
+    val f = wormFrame(sc, if (fl0) 1 else if (sl) 2 else 0, k, if (e.el) 1 else 0)
     g.save(); g.translate(rd(e.x), rd(e.y))
     wm.setValues(if (axis == 0) floatArrayOf(sg.toFloat(), 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f) else floatArrayOf(0f, 1f, 0f, sg.toFloat(), 0f, 0f, 0f, 0f, 1f))
     g.c.concat(wm)
@@ -388,11 +392,11 @@ private const val WFR = 24
 private class WFrame(val s: Spr, val ox: Double, val oy: Double)
 private val WFC = HashMap<String, WFrame>()
 private val wm = android.graphics.Matrix()
-private fun wormFrame(sc: Double, st: Int, k: Int): WFrame = WFC.getOrPut("$sc|$st|$k") {
-    val pad = Math.ceil(sc * .9 + 1.7)
+private fun wormFrame(sc: Double, st: Int, k: Int, v: Int): WFrame = WFC.getOrPut("$sc|$st|$k|$v") {
+    val pad = Math.ceil(sc * .9 + 1.7) + (if (v == 1) Math.ceil(sc) else 0.0)
     val b = Bitmap.createBitmap(Math.ceil(14 * sc).toInt(), Math.ceil(5 * sc + pad * 2).toInt(), Bitmap.Config.ARGB_8888)
     val cg = G(Canvas(b)); val tk = k.toDouble() / WFR * 6.283
-    for (p in WP) {
+    for (p in if (v == 1 && WPE.isNotEmpty()) WPE else WP) {
         val hh = ((p.x * 7 + p.y * 13) % 5) * .9
         val oz = rd(sin(tk + p.x * .7) * sc * .9 + sin(tk * 2 + hh * 3) * .7)
         cg.fillStyle = if (st == 1) "#ffffff" else if (st == 2) p.fc else p.c
@@ -531,7 +535,7 @@ fun draw(g: G) {
     }
     val cvx = W / 2 + 240; val cvy = H / 2 + 240
     for (e in S.en) {
-        if (!e.boss && (Math.abs(e.x - cm[0]) > cvx || Math.abs(e.y - cm[1]) > cvy)) continue // 화면 밖 적은 그리지 않음
+        if (e.hid || (!e.boss && (Math.abs(e.x - cm[0]) > cvx || Math.abs(e.y - cm[1]) > cvy))) continue // 화면 밖 적은 그리지 않음
         val s = ES[e.c] ?: ES["crawl"]!!
         val q = e.sq; val w = s.n.w * e.sc; val h = s.n.h * e.sc; val tel = e.st == 1 || e.tl > 0
         val F = odd(S.t * (if (e.boss) 3 else 7) + e.ph)
