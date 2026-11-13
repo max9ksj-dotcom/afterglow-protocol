@@ -133,6 +133,7 @@ private fun fitRun(mode: String) {
                 lvup()
             }
             "fitpause" -> pauseT()
+            "fitcap" -> { s.cp.add(Cap(P.x + 90, P.y - 60, 'h', 30.0)); s.cp.add(Cap(P.x - 100, P.y + 40, 'm', 30.0)); s.cp.add(Cap(P.x + 50, P.y + 110, 'b', 30.0)) }
             "fitend" -> { s.pg = 3; s.kills = 12345; s.na.addAll(ACH.take(5).map { it.n }); s.cr0 = 12; s.bg = true; end(true) }
         }
         P.hp = P.mh

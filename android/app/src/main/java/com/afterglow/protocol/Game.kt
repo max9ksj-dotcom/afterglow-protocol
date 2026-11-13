@@ -36,7 +36,7 @@ class Prj(var x: Double, var y: Double, var a: Double, val d: Double, val tg: En
 }
 class EP(var x: Double, var y: Double, var vx: Double, var vy: Double, var l: Double, val d: Double = 8.0, val h: Double = 0.0, val rd: String? = null)
 class Mine(val x: Double, val y: Double, var ar: Double, val d: Double, val r: Double, var x_: Boolean = false) { var lf = 6.0 }
-class Gem(var x: Double, var y: Double, val v: Double, val k: String, var a: Double = 0.0, var g: Boolean = false)
+class Gem(var x: Double, var y: Double, val v: Double, val k: String, var a: Double = 0.0, var g: Boolean = false) { var vac = false }
 class Pt(var x: Double, var y: Double, var vx: Double, var vy: Double, var l: Double, val m: Double, val c: String, val s: Double)
 class Q(var t: Double, val f: () -> Unit)
 class Os(var t: Double, var a: Double, val d: Double, var cd: Double, val rd: String?)
@@ -45,7 +45,7 @@ class Pull(val x: Double, val y: Double, var t: Double, val s: Double = 240.0)
 class Fx(val t: Char, var l: Double, val m: Double) {
     var x = 0.0; var y = 0.0; var r = 0.0; var c = "#ffffff"; var k = false; var a = 0.0; var ha = .87
     var x1 = 0.0; var y1 = 0.0; var x2 = 0.0; var y2 = 0.0; var w = 3.0; var pts: List<DoubleArray>? = null; var len = 0.0
-    var txt = ""; var v = 0L; var cr = false; var d = 0.0; var s: List<Char> = emptyList()
+    var txt = ""; var v = 0L; var vs: String? = null; var cr = false; var d = 0.0; var s: List<Char> = emptyList()
 }
 /** 레벨업 선택지. wk = 무기 그림, ic = 능력 아이콘, tg/tc = 종류 표시와 색, lv/mx = 레벨 눈금 */
 class Opt(val a: String, val b: String, val ev: Boolean = false, val wk: String? = null, val ic: String? = null, val tg: String = "", val tc: String = "#5fd8ff", val lv: Int = 0, val mx: Int = 0, val f: () -> Unit)
@@ -59,7 +59,7 @@ class St(val w0: String, @JvmField var T: Double) {
     var run = true; var t = 0.0; var sp = 1
     val ws = LinkedHashMap<String, Wp>(); val ps = LinkedHashMap<String, Int>(); val rl = LinkedHashMap<String, Int>()
     val en = ArrayList<En>(); val pr = ArrayList<Prj>(); val fx = ArrayList<Fx>(); val gm = ArrayList<Gem>(); val mn = ArrayList<Mine>()
-    val q = ArrayList<Q>(); val ep = ArrayList<EP>(); val os = ArrayList<Os>(); val pt = ArrayList<Pt>()
+    val q = ArrayList<Q>(); val ep = ArrayList<EP>(); val os = ArrayList<Os>(); val pt = ArrayList<Pt>(); val cp = ArrayList<Cap>(); var cpn = 0
     var sc = 0.0; var rc = 0.0; var rc2 = 0.0; var oct = 0.0; var shd = 0.0; var shcd = 0.0; var mvb = 0.0; var kc = 0; var ea = 0.0
     var rpend = false; var rco: List<Rel>? = null; var elt = 50.0; var xl = false; var kills = 0; var boss = false; var msg = ""; var mt = 0.0
     var oa = 0.0; var sh = 0.0; var lt = -9.0; var lw: String? = null; var la = 0.0; var bt = 0.0; var bn: Double? = null; var pg = 1
@@ -325,6 +325,7 @@ fun hit(e: En, d0: Double, c0: String? = null) {
         }
         if (e.k == "split") { spawn("mini", e.x - 8, e.y); spawn("mini", e.x + 8, e.y) }
         S.gm.add(Gem(e.x, e.y, if (e.boss) 60.0 else e.xp, e.k))
+        if (!e.boss && e.k != "mini" && (e.el || rnd() < CPC)) capDrop(e.x, e.y)
         burst(e.x, e.y, if (e.boss) 70.0 else 16.0, e.col, 320.0, .6, 4.0); burst(e.x, e.y, 6.0, "#fff", 260.0, .3, 3.0); fxR(e.x, e.y, e.r * 2.4, e.col, .3)
         stop(if (e.boss) .3 else if (e.r > 14) .07 else .03); shake(if (e.boss) 12.0 else if (e.r > 14) 4.0 else 1.5); snd(130.0, .16, "sawtooth", .06)
         if (!e.boss && pl("rec") > 0 && S.rc <= 0) { P.hp = Math.min(P.mh, P.hp + pl("rec")); S.rc = 1.0 }
@@ -886,6 +887,7 @@ fun upd(dt0: Double) {
         val dx = P.x - gm.x; val dy = P.y - gm.y; val d = Math.max(.001, hyp(dx, dy)); val R = 110 * RMG
         var sp = 0.0
         if (d < R) sp = 240 + 420 * (1 - d / R) else if (gm.a > 5) sp = 110.0
+        if (gm.vac) sp = Math.max(sp, 700.0)
         if (sp > 0) { val mv = Math.min(d, sp * dt); gm.x += dx / d * mv; gm.y += dy / d * mv }
         if (d < 22) { gm.g = true; gainXP(gm.v); if (rlc("coll") > 0) S.mvb = 1.5 }
     }
@@ -897,6 +899,7 @@ fun upd(dt0: Double) {
         gainXP(v)
     }
     S.gm.removeAll { it.g }
+    capUpd(dt)
     if (P.xp >= P.nx && S.run) {
         P.xp -= P.nx; P.lv++; P.nx = 6.0 + P.lv * 4; P.hp = Math.min(P.mh, P.hp + P.mh * up("lu")); lvup()
     }
@@ -1157,7 +1160,7 @@ fun glUpd(dt: Double) {
     if (!S.gs && t > 3.4) { S.gs = true; snd(60.0, .6, "sawtooth", .12) }
     if (t > 5.6) nextPage()
 }
-fun clearField() { S.en.clear(); S.pr.clear(); S.ep.clear(); S.mn.clear(); S.fx.clear(); S.pt.clear(); S.q.clear(); S.gm.clear(); S.os.clear() }
+fun clearField() { S.cp.clear(); S.en.clear(); S.pr.clear(); S.ep.clear(); S.mn.clear(); S.fx.clear(); S.pt.clear(); S.q.clear(); S.gm.clear(); S.os.clear() }
 fun nextPage() {
     S.pg = 2; bgmSet("boss"); S.t = 0.0; S.T = 180.0; S.boss = true; S.bg = false; S.dc = 0.0; S.cin = 0.0; S.cl = false
     clearField()

@@ -444,6 +444,7 @@ fun draw(g: G) {
         for (q in S.gm) { val s = GS[q.k] ?: GS["crawl"]!!; g.fillStyle = s.gl; g.globalAlpha = .2 + .1 * sin(S.t * 5 + q.x); g.circleFill(rd(q.x), rd(q.y), s.gr) }
         g.lighter = false; g.globalAlpha = 1.0
     }
+    drawCaps(g)
     for (q in S.gm) {
         val s = GS[q.k] ?: GS["crawl"]!!; val w = s.n.w * s.sc; val h = s.n.h * s.sc; val b = rd(sin(S.t * 4 + q.x * .1) * 2)
         g.drawImage(s.n, rd(q.x - w / 2), rd(q.y - h / 2 + b), w, h)
@@ -572,7 +573,7 @@ fun draw(g: G) {
         val u = 1 - f.l / f.m
         val fs = (if (f.cr) 21.0 else 13.0) * (if (u < .12) 1 + (.12 - u) * 6 else 1.0)
         g.globalAlpha = Math.min(1.0, f.l * 3); g.font(fs, true); g.lineWidth = 3.0; g.strokeStyle = "#000"
-        g.strokeText(f.v.toString(), f.x - 8, f.y - u * 30); g.fillStyle = if (f.cr) "#ffd24a" else "#fff"; g.fillText(f.v.toString(), f.x - 8, f.y - u * 30)
+        val tx = f.vs ?: f.v.toString(); g.strokeText(tx, f.x - 8, f.y - u * 30); g.fillStyle = if (f.cr) "#ffd24a" else "#fff"; g.fillText(tx, f.x - 8, f.y - u * 30)
     }
     g.globalAlpha = 1.0
     run {
