@@ -731,8 +731,14 @@ function mkTile(kind,seed){const k=document.createElement('canvas');k.width=k.he
  return k}
 const TL=[0,1,2,3,4,5].map(kd=>[0,1,2,3].map(sd=>mkTile(kd,sd)));
 const TINT=['rgba(90,40,130,.09)','rgba(30,100,120,.09)','rgba(130,60,30,.07)','rgba(0,0,0,0)'];
-function drawBG(cm){const T=32,x0=Math.floor((cm[0]-W/2)/T)-1,y0=Math.floor((cm[1]-H/2)/T)-1,x1=x0+Math.ceil(W/T)+3,y1=y0+Math.ceil(H/T)+3,gl=[];
- for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){const h=hs(tx,ty),r=h%100,k=r<68?0:r<80?5:r<88?1:r<94?2:r<98?4:3;g.drawImage(TL[k][(h>>8)&3],tx*T,ty*T,T,T);g.fillStyle=TINT[hs(tx>>3,ty>>3)&3];g.fillRect(tx*T,ty*T,T,T);if(k==2||k==3)gl.push([tx,ty,k,h])}
+// 배경: 8×8칸(256px) 덩어리를 한 번만 그려 두고 다시 쓴다 (예전엔 매 프레임 칸 1000여 개를 그림). 반짝이는 칸만 매 프레임 그린다
+const BGK=new Map();
+function bgChunk(cx,cy,lim){const key=cx+','+cy;let c=BGK.get(key);if(c){BGK.delete(key);BGK.set(key,c);return c}
+ const cv=document.createElement('canvas');cv.width=cv.height=256;const x=cv.getContext('2d'),gl=[];x.imageSmoothingEnabled=false;
+ for(let j=0;j<8;j++)for(let i=0;i<8;i++){const tx=cx*8+i,ty=cy*8+j,h=hs(tx,ty),r=h%100,k=r<68?0:r<80?5:r<88?1:r<94?2:r<98?4:3;x.drawImage(TL[k][(h>>8)&3],i*32,j*32,32,32);if(k==2||k==3)gl.push([tx,ty,k,h])}
+ x.fillStyle=TINT[hs(cx,cy)&3];x.fillRect(0,0,256,256);c={cv,gl};BGK.set(key,c);while(BGK.size>lim)BGK.delete(BGK.keys().next().value);return c}
+function drawBG(cm){const T=32,x0=Math.floor((cm[0]-W/2)/T)-1,y0=Math.floor((cm[1]-H/2)/T)-1,x1=x0+Math.ceil(W/T)+3,y1=y0+Math.ceil(H/T)+3,cx0=x0>>3,cy0=y0>>3,cx1=x1>>3,cy1=y1>>3,lim=Math.max(48,(cx1-cx0+1)*(cy1-cy0+1)*2),gl=[];
+ for(let cy=cy0;cy<=cy1;cy++)for(let cx=cx0;cx<=cx1;cx++){const c=bgChunk(cx,cy,lim);g.drawImage(c.cv,cx*256,cy*256);for(const q of c.gl)if(q[0]>=x0&&q[0]<=x1&&q[1]>=y0&&q[1]<=y1)gl.push(q)}
  if(S.pg==2||S.pg>=4){g.fillStyle=S.pg>=4?'rgba(0,30,80,.42)':'rgba(60,0,100,.38)';g.fillRect(x0*T,y0*T,(x1-x0+1)*T,(y1-y0+1)*T)}g.globalCompositeOperation='lighter';for(const[tx,ty,k,h]of gl){g.fillStyle=(k==2?'rgba(255,170,60,':'rgba(90,220,255,')+(.05+.04*Math.sin(S.t*2+h%7))+')';g.fillRect(tx*T-8,ty*T-8,T+16,T+16)}g.globalCompositeOperation='source-over'}
 let VGc=null;
 function drawSticks(){const manual=tb('aa')<=0,bs=stickBase();g.save();
@@ -764,8 +770,8 @@ function draw(){
  for(const mn of S.mn){const ar=mn.ar<=0,pu=ar?.5+.5*Math.sin(S.t*12):.3;g.fillStyle='#333';g.fillRect(mn.x-6,mn.y-6,12,12);g.fillStyle=ar?'rgba(255,90,70,'+(.4+.6*pu)+')':'#cb4';g.fillRect(mn.x-3,mn.y-3,6,6);if(ar){g.strokeStyle='rgba(255,120,90,'+(.15+.2*pu)+')';g.lineWidth=1;g.beginPath();g.arc(mn.x,mn.y,mn.r,0,6.283);g.stroke()}}
  if(FX>=2&&S.gm.length<=80){g.globalCompositeOperation='lighter';for(const q of S.gm){const s=GS[q.k]||GS.crawl;g.fillStyle=s.gl;g.globalAlpha=.2+.1*Math.sin(S.t*5+q.x);g.beginPath();g.arc(Math.round(q.x),Math.round(q.y),s.gr,0,6.283);g.fill()}g.globalCompositeOperation='source-over';g.globalAlpha=1}
  for(const q of S.gm){const s=GS[q.k]||GS.crawl,w=s.n.width*s.sc,h=s.n.height*s.sc,b=Math.round(Math.sin(S.t*4+q.x*.1)*2);g.drawImage(s.n,Math.round(q.x-w/2),Math.round(q.y-h/2+b),w,h)}
- drawCaps();
- for(const e of S.en){const s=ES[e.c]||ES.crawl,q=e.sq||0,w=s.n.width*e.sc,h=s.n.height*e.sc,tel=e.st==1||e.tl>0,F=Math.floor(S.t*(e.boss?3:7)+e.ph)%2?'2':'',im=s[(e.fl>0||(tel&&Math.floor(S.t*16)%2)?'w':e.sl>0?'f':'n')+F],bb=e.k=='hboss'?Math.round(Math.sin(S.t*2)*6):e.k=='bat'?Math.round(Math.sin(S.t*14+e.ph)*3):F&&(e.k=='split'||e.k=='crawl')?-e.sc:0;
+ drawCaps();const cvx=W/2+240,cvy=H/2+240;
+ for(const e of S.en){if(!e.boss&&(Math.abs(e.x-cm[0])>cvx||Math.abs(e.y-cm[1])>cvy))continue;const s=ES[e.c]||ES.crawl,q=e.sq||0,w=s.n.width*e.sc,h=s.n.height*e.sc,tel=e.st==1||e.tl>0,F=Math.floor(S.t*(e.boss?3:7)+e.ph)%2?'2':'',im=s[(e.fl>0||(tel&&Math.floor(S.t*16)%2)?'w':e.sl>0?'f':'n')+F],bb=e.k=='hboss'?Math.round(Math.sin(S.t*2)*6):e.k=='bat'?Math.round(Math.sin(S.t*14+e.ph)*3):F&&(e.k=='split'||e.k=='crawl')?-e.sc:0;
   if((e.k=='charge'||e.k=='boss'||e.k=='rival')&&e.st==1){g.strokeStyle='rgba(255,80,60,.6)';g.lineWidth=2;Ln(e.x,e.y,e.x+e.dx*220,e.y+e.dy*220)}
   if(e.k=='boss'&&e.rg){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.22+.14*Math.sin(S.t*10);g.fillStyle='#ff3b3b';g.beginPath();g.arc(e.x,e.y,e.r*1.9,0,6.283);g.fill();g.restore()}
   g.fillStyle='rgba(0,0,0,.3)';g.fillRect(Math.round(e.x-w/2),Math.round(e.y+e.r-2),w,4);

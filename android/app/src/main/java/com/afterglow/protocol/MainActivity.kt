@@ -87,7 +87,7 @@ class MainActivity : Activity() {
         setContentView(root)
         hideBars()
         menu()
-        if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) intent.getStringExtra("jump")?.let { debugRun(it) }
+        if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) intent.getStringExtra("jump")?.let { DEBUG_PERF = true; debugRun(it) }
     }
 
     /** 왼쪽 위 정보창을 피해 버튼을 줄바꿈한다 */
@@ -174,6 +174,13 @@ class FlowBar(c: Context) : ViewGroup(c) {
     }
 }
 
+/** 개발용 빌드에서만: 120프레임마다 평균 계산·그리기 시간을 logcat AGPERF에 남긴다 */
+var DEBUG_PERF = false
+private var pfN = 0; private var pfT = 0L; private var pfD = 0L
+private fun perf(t: Long, d: Long) {
+    pfN++; pfT += t; pfD += d
+    if (pfN >= 120) { android.util.Log.i("AGPERF", String.format(java.util.Locale.US, "tick=%.2fms draw=%.2fms en=%d", pfT / 1e6 / pfN, pfD / 1e6 / pfN, Sn?.en?.size ?: 0)); pfN = 0; pfT = 0; pfD = 0 }
+}
 /** 게임 화면. 원본 웹판처럼 화면 크기의 작은 버퍼에 그린 뒤 각지게 늘려 도트 느낌을 낸다(글씨 포함). */
 class GameView(c: Context) : View(c), Choreographer.FrameCallback {
     private val den = resources.displayMetrics.density.toDouble()
@@ -208,13 +215,16 @@ class GameView(c: Context) : View(c), Choreographer.FrameCallback {
         val dt = if (last == 0L) 0.0 else Math.min(.05, (ns - last) / 1e9)
         last = ns
         try {
+            val t0 = System.nanoTime()
             tick(dt)
+            val t1 = System.nanoTime()
             val c = cv; val gg = g
             if (c != null && gg != null) {
                 c.save()
                 draw(gg)
                 c.restoreToCount(1)
             }
+            if (DEBUG_PERF) perf(t1 - t0, System.nanoTime() - t1)
         } catch (e: Exception) { android.util.Log.e("afterglow", "frame", e) }
         invalidate()
         Choreographer.getInstance().postFrameCallback(this)

@@ -363,18 +363,42 @@ private fun drawWorm(g: G, e: En) {
         g.fillRect(rd(e.x + (if (axis == 0) lx else ly)), rd(e.y + (if (axis == 0) ly else lx)), sc, sc)
     }
 }
+/** 배경 덩어리: 8×8칸(256px)을 한 번만 그려 두고 다시 쓴다 (예전엔 매 프레임 칸 수백 개를 그림). 반짝이는 칸 목록도 함께 둔다 */
+private class BgChunk(val s: Spr, val gl: List<LongArray>)
+private val BGK = object : LinkedHashMap<Long, BgChunk>(64, .75f, true) {
+    override fun removeEldestEntry(e: MutableMap.MutableEntry<Long, BgChunk>?): Boolean {
+        if (size > bgLim) { e?.value?.s?.b?.recycle(); return true }
+        return false
+    }
+}
+private var bgLim = 48
+private fun bgChunk(cx: Int, cy: Int): BgChunk {
+    val key = (cx.toLong() shl 32) or (cy.toLong() and 0xffffffffL)
+    BGK[key]?.let { return it }
+    val b = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
+    val cg = G(Canvas(b)); val gl = ArrayList<LongArray>()
+    for (j in 0 until 8) for (i in 0 until 8) {
+        val tx = cx * 8 + i; val ty = cy * 8 + j
+        val h = hsh(tx, ty); val r = (h % 100).toInt()
+        val k = if (r < 68) 0 else if (r < 80) 5 else if (r < 88) 1 else if (r < 94) 2 else if (r < 98) 4 else 3
+        cg.drawImage(TL[k][((h shr 8) and 3).toInt()], i * 32.0, j * 32.0, 32.0, 32.0)
+        if (k == 2 || k == 3) gl.add(longArrayOf(tx.toLong(), ty.toLong(), k.toLong(), h))
+    }
+    cg.fillStyle = TINT[(hsh(cx, cy) and 3).toInt()]; cg.fillRect(0.0, 0.0, 256.0, 256.0)
+    val c = BgChunk(Spr(b), gl); BGK[key] = c
+    return c
+}
 private fun drawBG(g: G, cm: DoubleArray) {
     val T = 32
     val x0 = fl((cm[0] - W / 2) / T).toInt() - 1; val y0 = fl((cm[1] - H / 2) / T).toInt() - 1
     val x1 = x0 + Math.ceil(W / T).toInt() + 3; val y1 = y0 + Math.ceil(H / T).toInt() + 3
     val gl = ArrayList<LongArray>()
-    for (ty in y0..y1) for (tx in x0..x1) {
-        val h = hsh(tx, ty); val r = (h % 100).toInt()
-        val k = if (r < 68) 0 else if (r < 80) 5 else if (r < 88) 1 else if (r < 94) 2 else if (r < 98) 4 else 3
-        val X = (tx * T).toDouble(); val Y = (ty * T).toDouble()
-        g.drawImage(TL[k][((h shr 8) and 3).toInt()], X, Y, 32.0, 32.0)
-        g.fillStyle = TINT[(hsh(tx shr 3, ty shr 3) and 3).toInt()]; g.fillRect(X, Y, 32.0, 32.0)
-        if (k == 2 || k == 3) gl.add(longArrayOf(tx.toLong(), ty.toLong(), k.toLong(), h))
+    val cx0 = x0 shr 3; val cy0 = y0 shr 3; val cx1 = x1 shr 3; val cy1 = y1 shr 3
+    bgLim = Math.max(48, (cx1 - cx0 + 1) * (cy1 - cy0 + 1) * 2)
+    for (cy in cy0..cy1) for (cx in cx0..cx1) {
+        val c = bgChunk(cx, cy)
+        g.drawImage(c.s, cx * 256.0, cy * 256.0, 256.0, 256.0)
+        for (q in c.gl) if (q[0] >= x0 && q[0] <= x1 && q[1] >= y0 && q[1] <= y1) gl.add(q)
     }
     if (S.pg == 2 || S.pg >= 4) { g.fillStyle = if (S.pg >= 4) "rgba(0,30,80,.42)" else "rgba(60,0,100,.38)"; g.fillRect(x0 * 32.0, y0 * 32.0, (x1 - x0 + 1) * 32.0, (y1 - y0 + 1) * 32.0) }
     g.lighter = true
@@ -449,7 +473,9 @@ fun draw(g: G) {
         val s = GS[q.k] ?: GS["crawl"]!!; val w = s.n.w * s.sc; val h = s.n.h * s.sc; val b = rd(sin(S.t * 4 + q.x * .1) * 2)
         g.drawImage(s.n, rd(q.x - w / 2), rd(q.y - h / 2 + b), w, h)
     }
+    val cvx = W / 2 + 240; val cvy = H / 2 + 240
     for (e in S.en) {
+        if (!e.boss && (Math.abs(e.x - cm[0]) > cvx || Math.abs(e.y - cm[1]) > cvy)) continue // 화면 밖 적은 그리지 않음
         val s = ES[e.c] ?: ES["crawl"]!!
         val q = e.sq; val w = s.n.w * e.sc; val h = s.n.h * e.sc; val tel = e.st == 1 || e.tl > 0
         val F = odd(S.t * (if (e.boss) 3 else 7) + e.ph)
