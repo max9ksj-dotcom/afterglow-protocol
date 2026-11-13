@@ -228,14 +228,33 @@ private fun drawBug(g: G) {
     }
     g.restore()
 }
+/** 적 탄환 그림: 크기 7가지를 한 번만 그려 두고 붙인다 (탄환이 많은 2·3페이지에서 원 3번 그리기 → 그림 1장) */
+private val EPC = HashMap<Int, Spr>()
+private fun epSpr(ri: Int): Spr = EPC.getOrPut(ri) {
+    val r = ri / 4.0; val R = r + 7; val sz = Math.ceil(R * 2 + 4).toInt(); val c = sz / 2.0
+    val b = Bitmap.createBitmap(sz, sz, Bitmap.Config.ARGB_8888); val cg = G(Canvas(b))
+    cg.fillStyle = "rgba(255,60,100,.28)"; cg.circleFill(c, c, R); cg.fillStyle = "#ff3b6b"; cg.circleFill(c, c, r)
+    cg.strokeStyle = "#ffffff"; cg.lineWidth = 2.0; cg.circleStroke(c, c, r); cg.fillStyle = "#ffffff"; cg.fillRect(c - 2, c - 2, 4.0, 4.0)
+    Spr(b)
+}
+/** 2페이지 화면 금: 모양이 바뀌지 않으므로 한 번만 그려 두고 붙인다 (예전엔 매 프레임 굵은 선 3겹을 그려 4~5ms 걸림) */
+private var ckSpr: Spr? = null
+private var ckRef: Any? = null
 private fun drawCracks(g: G) {
     val ck = S.ck ?: return
-    g.save(); g.roundJoin = true
-    for ((w2, c, al) in listOf(Triple(7.0, "#000000", .55), Triple(3.0, "#99eeff", .7), Triple(1.2, "#ffffff", 1.0))) {
-        g.strokeStyle = c; g.globalAlpha = al; g.lineWidth = w2
-        for (p in ck) { g.beginPath(); g.moveTo(p[0][0], p[0][1]); for (i in 1 until p.size) g.lineTo(p[i][0], p[i][1]); g.stroke() }
+    var sp = ckSpr
+    if (sp == null || ckRef !== ck || sp.w != W || sp.h != H) {
+        sp?.b?.recycle()
+        val b = Bitmap.createBitmap(Math.ceil(W * RS).toInt(), Math.ceil(H * RS).toInt(), Bitmap.Config.ARGB_8888)
+        val c = Canvas(b); c.scale(RS.toFloat(), RS.toFloat())
+        val cg = G(c); cg.roundJoin = true
+        for ((w2, col, al) in listOf(Triple(7.0, "#000000", .55), Triple(3.0, "#99eeff", .7), Triple(1.2, "#ffffff", 1.0))) {
+            cg.strokeStyle = col; cg.globalAlpha = al; cg.lineWidth = w2
+            for (p in ck) { cg.beginPath(); cg.moveTo(p[0][0], p[0][1]); for (i in 1 until p.size) cg.lineTo(p[i][0], p[i][1]); cg.stroke() }
+        }
+        sp = Spr(b, W, H); ckSpr = sp; ckRef = ck
     }
-    g.roundJoin = false; g.restore()
+    g.drawImage(sp, 0.0, 0.0, W, H)
 }
 private fun drawTf(g: G) {
     val t = S.tf
@@ -355,13 +374,30 @@ private fun drawWorm(g: G, e: En) {
     val axis = e.ax!!
     val sg = if (axis == 0) (if (dx < 0) -1 else 1) else (if (dy < 0) -1 else 1)
     val fl0 = e.fl > 0; val sl = e.sl > 0; val t = S.t * 9 + e.ph
+    val k = Math.floor((((t / 6.283) % 1) + 1) % 1 * WFR).toInt() % WFR
+    val f = wormFrame(sc, if (fl0) 1 else if (sl) 2 else 0, k)
+    g.save(); g.translate(rd(e.x), rd(e.y))
+    wm.setValues(if (axis == 0) floatArrayOf(sg.toFloat(), 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f) else floatArrayOf(0f, 1f, 0f, sg.toFloat(), 0f, 0f, 0f, 0f, 1f))
+    g.c.concat(wm)
+    g.drawImage(f.s, -f.ox, -f.oy)
+    g.restore()
+}
+/** 지렁이 그림: 꿈틀거림 24단계 × 색 3가지(보통/맞음/느려짐)를 처음 쓸 때 한 번만 그려 둔다 (예전엔 매 프레임 점 60여 개를 찍음) */
+private const val WFR = 24
+private class WFrame(val s: Spr, val ox: Double, val oy: Double)
+private val WFC = HashMap<String, WFrame>()
+private val wm = android.graphics.Matrix()
+private fun wormFrame(sc: Double, st: Int, k: Int): WFrame = WFC.getOrPut("$sc|$st|$k") {
+    val pad = Math.ceil(sc * .9 + 1.7)
+    val b = Bitmap.createBitmap(Math.ceil(14 * sc).toInt(), Math.ceil(5 * sc + pad * 2).toInt(), Bitmap.Config.ARGB_8888)
+    val cg = G(Canvas(b)); val tk = k.toDouble() / WFR * 6.283
     for (p in WP) {
-        val hs = ((p.x * 7 + p.y * 13) % 5) * .9
-        val oz = rd(sin(t + p.x * .7) * sc * .9 + sin(t * 2.3 + hs * 3) * .7)
-        val lx = (p.x - 7) * sg * sc; val ly = (p.y - 2.5) * sc + oz
-        g.fillStyle = if (fl0) "#ffffff" else if (sl) p.fc else p.c
-        g.fillRect(rd(e.x + (if (axis == 0) lx else ly)), rd(e.y + (if (axis == 0) ly else lx)), sc, sc)
+        val hh = ((p.x * 7 + p.y * 13) % 5) * .9
+        val oz = rd(sin(tk + p.x * .7) * sc * .9 + sin(tk * 2 + hh * 3) * .7)
+        cg.fillStyle = if (st == 1) "#ffffff" else if (st == 2) p.fc else p.c
+        cg.fillRect(rd(p.x * sc), rd(p.y * sc) + pad + oz, sc, sc)
     }
+    WFrame(Spr(b), 7 * sc, 2.5 * sc + pad)
 }
 /** 배경 덩어리: 8×8칸(256px)을 한 번만 그려 두고 다시 쓴다 (예전엔 매 프레임 칸 수백 개를 그림). 반짝이는 칸 목록도 함께 둔다 */
 private class BgChunk(val s: Spr, val gl: List<LongArray>)
@@ -385,6 +421,7 @@ private fun bgChunk(cx: Int, cy: Int): BgChunk {
         if (k == 2 || k == 3) gl.add(longArrayOf(tx.toLong(), ty.toLong(), k.toLong(), h))
     }
     cg.fillStyle = TINT[(hsh(cx, cy) and 3).toInt()]; cg.fillRect(0.0, 0.0, 256.0, 256.0)
+    b.setHasAlpha(false) // 불투명 → 덮어 그리기가 빨라짐
     val c = BgChunk(Spr(b), gl); BGK[key] = c
     return c
 }
@@ -425,6 +462,22 @@ private fun drawSticks(g: G) {
     else { if (joy != null) one(joy, bs.lx, bs.ly, "#ffffff", ""); if (aimJ != null) one(aimJ, bs.rx, bs.ry, "#ffd24a", "") }
     g.restore()
 }
+/** 화면 가장자리 그라데이션(어둡게/붉게)을 화면 크기 그림으로 한 번만 만들어 둔다.
+ *  예전엔 매 프레임 픽셀마다 그라데이션을 계산해서 그리기 시간의 절반(6~8ms)을 썼다. 세기는 globalAlpha로 조절 */
+private val OVL = HashMap<String, Spr>()
+private var ovW = 0.0
+private var ovH = 0.0
+private fun ovl(key: String, r0: Double, r1: Double, rgb: Int, a: Int): Spr {
+    if (ovW != W || ovH != H) { OVL.values.forEach { it.b.recycle() }; OVL.clear(); ovW = W; ovH = H }
+    return OVL.getOrPut(key) {
+        val w = Math.ceil(W * RS).toInt(); val h = Math.ceil(H * RS).toInt()
+        val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = rgb and 0xFFFFFF
+        val p = Paint().apply { shader = RadialGradient(w / 2f, h / 2f, (r1 * RS).toFloat(), intArrayOf(c, (a shl 24) or c), floatArrayOf((r0 / r1).toFloat(), 1f), Shader.TileMode.CLAMP) }
+        Canvas(b).drawRect(0f, 0f, w.toFloat(), h.toFloat(), p)
+        Spr(b, W, H)
+    }
+}
 private var vgShader: Shader? = null
 private var vgW = 0.0
 private var vgH = 0.0
@@ -451,11 +504,13 @@ fun draw(g: G) {
     g.resetState()
     g.fillStyle = "#0d1020"; g.fillRect(0.0, 0.0, W, H)
     if (Sn == null || MENU) { menuBG(g); return }
+    mk(0)
     if (S.gl > 0 && S.snap != null) { drawGlitch(g); return }
     val sx = (rnd() - .5) * S.sh; val sy = (rnd() - .5) * S.sh
     val cm = camPos(); val cx = W / 2 - cm[0] + sx; val cy = H / 2 - cm[1] + sy
     g.save(); g.translate(rd(cx), rd(cy))
     drawBG(g, cm)
+    mk(1)
     for (mn in S.mn) {
         val ar = mn.ar <= 0; val pu = if (ar) .5 + .5 * sin(S.t * 12) else .3
         g.fillStyle = "#333"; g.fillRect(mn.x - 6, mn.y - 6, 12.0, 12.0)
@@ -540,7 +595,9 @@ fun draw(g: G) {
         for (i in 1 until p.tr.size) { g.globalAlpha = i.toDouble() / p.tr.size * .6; g.line(p.tr[i - 1][0], p.tr[i - 1][1], p.tr[i][0], p.tr[i][1]) }
         g.globalAlpha = 1.0; g.fillStyle = "#fff"; g.fillRect(p.x - 3, p.y - 3, 6.0, 6.0)
     }
+    mk(2)
     for (p in S.pt) { val u = p.l / p.m; val z = p.s * (.4 + u); g.globalAlpha = u; g.fillStyle = p.c; g.fillRect(p.x - z / 2, p.y - z / 2, z, z) }
+    mk(3)
     for (f in S.fx) {
         val u = 1 - f.l / f.m
         g.globalAlpha = 1 - u
@@ -629,12 +686,9 @@ fun draw(g: G) {
         val an = o.a + i * 1.571; val x = bo.x + cos(an) * 85; val y = bo.y + sin(an) * 85
         g.fillStyle = "#ff3b6b"; g.fillRect(x - 6, y - 6, 12.0, 12.0); g.strokeStyle = "#ffffff"; g.lineWidth = 2.0; g.strokeRect(x - 6, y - 6, 12.0, 12.0)
     }
-    for (q in S.ep) {
-        val r = 7 + sin(S.t * 18 + q.x) * 1.2
-        g.fillStyle = "rgba(255,60,100,.28)"; g.circleFill(q.x, q.y, r + 7); g.fillStyle = "#ff3b6b"; g.circleFill(q.x, q.y, r)
-        g.strokeStyle = "#ffffff"; g.lineWidth = 2.0; g.circleStroke(q.x, q.y, r); g.fillStyle = "#ffffff"; g.fillRect(q.x - 2, q.y - 2, 4.0, 4.0)
-    }
+    for (q in S.ep) { val s = epSpr(Math.round((7 + sin(S.t * 18 + q.x) * 1.2) * 4).toInt()); g.drawImage(s, rd(q.x - s.w / 2), rd(q.y - s.h / 2)) }
     g.restore()
+    mk(4)
     if (S.pg == 2) drawCracks(g)
     if (bo != null && !bo.dead && (bo.k == "boss" || bo.k == "rival") && S.cin <= 0) drawBossArrow(g, bo, rd(cx), rd(cy))
     drawEdgeWarn(g)
@@ -646,29 +700,18 @@ fun draw(g: G) {
         g.fillRect(rd(sx2), rd(sy2), 2.0, 2.0)
     }
     g.globalAlpha = 1.0
-    if (vgShader == null || vgW != W || vgH != H) {
-        val r0 = Math.min(W, H) * .35; val r1 = Math.max(W, H) * .75
-        vgShader = RadialGradient((W / 2).toFloat(), (H / 2).toFloat(), r1.toFloat(), intArrayOf(Col.parse("rgba(5,6,16,0)"), Col.parse("rgba(5,6,16,.5)")), floatArrayOf((r0 / r1).toFloat(), 1f), Shader.TileMode.CLAMP)
-        vgW = W; vgH = H
-    }
-    g.fillShader(vgShader!!, 0.0, 0.0, W, H)
+    mk(5)
+    g.drawImage(ovl("vg", Math.min(W, H) * .35, Math.max(W, H) * .75, 0x050610, 127), 0.0, 0.0, W, H)
+    mk(6)
     if (S.pg == 2 && FX >= 2) { g.fillStyle = "rgba(0,0,0,.12)"; var y = 0.0; while (y < H) { g.fillRect(0.0, y, W, 1.0); y += 4 } }
-    if (S.pg >= 4 && S.mut?.id == "dark") {
-        if (dkShader == null || dkW != W || dkH != H) {
-            dkShader = RadialGradient((W / 2).toFloat(), (H / 2).toFloat(), 250f, intArrayOf(Col.parse("rgba(0,0,0,0)"), Col.parse("rgba(0,0,0,.93)")), floatArrayOf(.4f, 1f), Shader.TileMode.CLAMP)
-            dkW = W; dkH = H
-        }
-        g.fillShader(dkShader!!, 0.0, 0.0, W, H)
-    }
+    if (S.pg >= 4 && S.mut?.id == "dark") g.drawImage(ovl("dk", 100.0, 250.0, 0x000000, 237), 0.0, 0.0, W, H)
     if (S.run && P.hp > 0 && P.hp < P.mh * .3) {
-        val k = (1 - P.hp / (P.mh * .3)) * .35 * (.6 + .4 * Math.abs(Math.sin(S.t * 3.2)))
-        val r0 = Math.min(W, H) * .38; val r1 = Math.max(W, H) * .72
-        g.fillShader(RadialGradient((W / 2).toFloat(), (H / 2).toFloat(), r1.toFloat(), intArrayOf(0x00FF1E32, ((k * 255).toInt() shl 24) or 0xFF1E32), floatArrayOf((r0 / r1).toFloat(), 1f), Shader.TileMode.CLAMP), 0.0, 0.0, W, H)
+        g.globalAlpha = (1 - P.hp / (P.mh * .3)) * .35 * (.6 + .4 * Math.abs(Math.sin(S.t * 3.2)))
+        g.drawImage(ovl("lh", Math.min(W, H) * .38, Math.max(W, H) * .72, 0xFF1E32, 255), 0.0, 0.0, W, H); g.globalAlpha = 1.0
     }
     if (S.vg > 0) {
-        val r0 = Math.min(W, H) * .3; val r1 = Math.max(W, H) * .7
-        val a = (Math.min(.6, S.vg) * 255).toInt()
-        g.fillShader(RadialGradient((W / 2).toFloat(), (H / 2).toFloat(), r1.toFloat(), intArrayOf(0x00FF2828, (a shl 24) or 0xFF2828), floatArrayOf((r0 / r1).toFloat(), 1f), Shader.TileMode.CLAMP), 0.0, 0.0, W, H)
+        g.globalAlpha = Math.min(.6, S.vg)
+        g.drawImage(ovl("hit", Math.min(W, H) * .3, Math.max(W, H) * .7, 0xFF2828, 255), 0.0, 0.0, W, H); g.globalAlpha = 1.0
     }
     if (S.cin > 0) {
         val w = Math.min(1.0, Math.min((2.6 - S.cin) / .4, S.cin / .4)); val bh = H * .11 * w
@@ -718,6 +761,7 @@ fun draw(g: G) {
     if (S.mt > 0) { g.fit(S.msg, W - 16 - SAL - SAR, 26.0, true, 13.0); g.fillStyle = "#f55"; g.textAlign = "center"; g.fillText(S.msg, W / 2 - SAL, if (CL) Math.max(PY + PH + 28 + (if (S.cb >= 3) 20 else 0), if (S.rl.values.any { it > 0 }) PY + PH + 56 else 0.0) else 80.0); g.textAlign = "left" }
     g.restore()
     drawSticks(g)
+    mk(7)
     if (S.sw > 0) {
         g.fillStyle = "rgba(60,255,255,.09)"; g.fillRect(0.0, 0.0, W, H); g.font(16.0, true); g.textAlign = "center"; g.fillStyle = "#99ffff"; g.fillText("입력 반전", W / 2, H * .3); g.textAlign = "left"
     }
@@ -776,3 +820,8 @@ private fun drawHud(g: G) {
         g.strokeText(ct, W / 2, cby); g.fillStyle = "#ffd24a"; g.fillText(ct, W / 2, cby); g.globalAlpha = 1.0; g.textAlign = "left"
     }
 }
+
+/** 개발용 구간별 그리기 시간 */
+val DPT = LongArray(8)
+val DACC = LongArray(8)
+fun mk(i: Int) { if (!DEBUG_PERF) return; val t = System.nanoTime(); if (i > 0 && DPT[i - 1] > 0) DACC[i] += t - DPT[i - 1]; DPT[i] = t; if (i == 7) java.util.Arrays.fill(DPT, 0L) }

@@ -179,7 +179,7 @@ var DEBUG_PERF = false
 private var pfN = 0; private var pfT = 0L; private var pfD = 0L
 private fun perf(t: Long, d: Long) {
     pfN++; pfT += t; pfD += d
-    if (pfN >= 120) { android.util.Log.i("AGPERF", String.format(java.util.Locale.US, "tick=%.2fms draw=%.2fms en=%d", pfT / 1e6 / pfN, pfD / 1e6 / pfN, Sn?.en?.size ?: 0)); pfN = 0; pfT = 0; pfD = 0 }
+    if (pfN >= 120) { android.util.Log.i("AGPERF", String.format(java.util.Locale.US, "tick=%.2fms draw=%.2fms en=%d | bg=%.2f world=%.2f pt=%.2f fx=%.2f post=%.2f vg=%.2f hud=%.2f", pfT / 1e6 / pfN, pfD / 1e6 / pfN, Sn?.en?.size ?: 0, DACC[1] / 1e6 / pfN, DACC[2] / 1e6 / pfN, DACC[3] / 1e6 / pfN, DACC[4] / 1e6 / pfN, DACC[5] / 1e6 / pfN, DACC[6] / 1e6 / pfN, DACC[7] / 1e6 / pfN)); java.util.Arrays.fill(DACC, 0L); pfN = 0; pfT = 0; pfD = 0 }
 }
 /** 게임 화면. 원본 웹판처럼 화면 크기의 작은 버퍼에 그린 뒤 각지게 늘려 도트 느낌을 낸다(글씨 포함). */
 class GameView(c: Context) : View(c), Choreographer.FrameCallback {
