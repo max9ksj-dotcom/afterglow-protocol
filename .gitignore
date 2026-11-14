@@ -4,7 +4,7 @@ backup/
 # 앱 빌드 결과물(깃허브에서 자동으로 다시 만든다)
 /app/
 # 개인 작업 메모·요청 기록 (공개 저장소에 올리지 않음)
-CLAUDE.md
+/CLAUDE.md
 README.txt
 docs/
 # 안드로이드 빌드 중 자동 생성되는 파일

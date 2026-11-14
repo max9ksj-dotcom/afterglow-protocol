@@ -1,8 +1,10 @@
 # main에 올릴 때마다: 테스트 → 안드로이드 앱(APK) 빌드 → "최신 버전" 다운로드 링크로 게시
+# 풀 리퀘스트(웹 Claude Code 작업 등): 테스트와 APK 빌드만 확인하고 게시는 하지 않는다
 name: Build APK
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: write
@@ -47,13 +49,14 @@ jobs:
           path: afterglow-protocol.apk
       - name: 다운로드 링크(릴리스) 게시
         # 정식 서명 키가 있을 때만 공개 (임시 키 앱을 깔면 나중에 업데이트가 안 되어 저장 데이터를 잃을 수 있음)
-        if: env.AG_KEYSTORE_FILE != ''
+        if: env.AG_KEYSTORE_FILE != '' && github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v1.0.${{ github.run_number }}"
           gh release create "$TAG" afterglow-protocol.apk --title "잔광 프로토콜 $TAG" --notes "안드로이드 앱. 휴대폰에서 afterglow-protocol.apk를 받아 설치하세요." --latest
       - name: 웹사이트(GitHub Pages) 게시
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
