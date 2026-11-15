@@ -100,7 +100,7 @@ fun relX(): RelX {
 }
 fun stat(): Stat {
     val rx = relX()
-    return Stat(1.15 + .06 * pl("over") + tb("dm") + chm("dm") + up("dm") + rx.dm + S.db, 1 - .05 * pl("acc") - tb("iv") - rx.iv,
+    return Stat(1.15 + .06 * pl("over") + tb("dm") + chm("dm") + up("dm") + rx.dm + S.db, 1 / (1 + .05 * pl("acc") + tb("iv") + rx.iv),
         1 + .07 * pl("lens") + tb("ar") + chm("ar") + up("ar") + rx.ar, pl("pierce"), .05 + .04 * pl("prec") + tb("cr") + chm("cr") + up("cr"),
         1.5 + tb("cd"), 1 + tb("bd"), 1 + .05 * pl("mob") + tb("mv") + chm("mv") + up("mv") + rx.mv + S.dv,
         Math.max(.3, 1 - .08 * pl("arm") - tb("am") - chm("am") - (if (SV.stG < 3) .2 else 0.0) - S.da - rx.am - (if (P.hp < P.mh * .3) up("lh") else 0.0)) * (if (S.shd > 0) .5 else 1.0) * dmgMul(),
@@ -203,7 +203,7 @@ fun oPh(): Double = (Sn?.oct ?: 0.0) % (OON + OOF)
 fun oVis() = oPh() < OON
 fun OB(): Orb? {
     val o = OB0() ?: return null
-    o.n += prjN(o.k); o.r *= 1 + .1 * wa(o.k, "rng"); o.iv = .35 * (1 - .06 * wa(o.k, "rld"))
+    o.n += prjN(o.k); o.r *= 1 + .1 * wa(o.k, "rng"); o.iv = Math.max(.15, .35 * stat().iv * (1 - .06 * wa(o.k, "rld")))
     return o
 }
 fun OB0(): Orb? {
