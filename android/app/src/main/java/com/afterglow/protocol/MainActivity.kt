@@ -69,7 +69,7 @@ class MainActivity : Activity() {
         bar.addView(barBtn("⏸") { pauseT() })
         hudBtn = barBtn("능력치") { hudT() }; bar.addView(hudBtn)
         volBtn = barBtn("소리") { volT() }; bar.addView(volBtn)
-        spBtn = barBtn("배속 x1") { b -> Sn?.let { it.sp = it.sp % 3 + 1; b.text = "배속 x" + it.sp } }; bar.addView(spBtn)
+        spBtn = barBtn("배속 x1") { spT() }; bar.addView(spBtn)
         fxBtn = barBtn("이펙트 표준") { b -> FX = (FX + 1) % 4; b.text = "이펙트 " + listOf("끔", "약", "표준", "강")[FX] }; bar.addView(fxBtn)
         root.addView(bar, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.END).apply { rightMargin = (6 * d).toInt(); topMargin = (2 * d).toInt() })
         // 카메라 구멍·노치를 피한다
@@ -192,6 +192,7 @@ class GameView(c: Context) : View(c), Choreographer.FrameCallback {
     private val bp = Paint().apply { isFilterBitmap = false }
     private var pm = -1
     private var pa = -1
+    private var pz = -1
 
     fun startLoop() { if (!running) { running = true; last = 0; Choreographer.getInstance().postFrameCallback(this) } }
     fun stopLoop() { running = false; Choreographer.getInstance().removeFrameCallback(this) }
@@ -212,11 +213,11 @@ class GameView(c: Context) : View(c), Choreographer.FrameCallback {
 
     override fun doFrame(ns: Long) {
         if (!running) return
-        val dt = if (last == 0L) 0.0 else Math.min(.05, (ns - last) / 1e9)
+        val rw = if (last == 0L) 0.0 else (ns - last) / 1e9; val dt = Math.min(.05, rw)
         last = ns
         try {
             val t0 = System.nanoTime()
-            tick(dt)
+            tick(dt, rw)
             val t1 = System.nanoTime()
             val c = cv; val gg = g
             if (c != null && gg != null) {
@@ -243,7 +244,8 @@ class GameView(c: Context) : View(c), Choreographer.FrameCallback {
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
                 val i = e.actionIndex; val id = e.getPointerId(i); val x = e.getX(i) / den; val y = e.getY(i) / den
-                if (tb("aa") > 0) {
+                if (pz < 0 && zmHit(x, y)) { pz = id; zmDrag = true; zmSet(y) }
+                else if (tb("aa") > 0) {
                     if (pm < 0) { joy = Joy(x, y); pm = id }
                 } else {
                     val b = stickBase()
@@ -254,14 +256,15 @@ class GameView(c: Context) : View(c), Choreographer.FrameCallback {
             MotionEvent.ACTION_MOVE -> for (i in 0 until e.pointerCount) {
                 val id = e.getPointerId(i); val x = e.getX(i) / den; val y = e.getY(i) / den
                 val j = joy; val a = aimJ
-                if (j != null && id == pm) stk(j, x, y) else if (a != null && id == pa) stk(a, x, y)
+                if (id == pz) zmSet(y) else if (j != null && id == pm) stk(j, x, y) else if (a != null && id == pa) stk(a, x, y)
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
                 val id = e.getPointerId(e.actionIndex)
+                if (id == pz) { pz = -1; zmDrag = false; sv() }
                 if (id == pm) { joy = null; pm = -1 }
                 if (id == pa) { aimJ = null; pa = -1 }
             }
-            MotionEvent.ACTION_CANCEL -> { joy = null; aimJ = null; pm = -1; pa = -1 }
+            MotionEvent.ACTION_CANCEL -> { joy = null; aimJ = null; pm = -1; pa = -1; pz = -1; zmDrag = false }
         }
         return true
     }

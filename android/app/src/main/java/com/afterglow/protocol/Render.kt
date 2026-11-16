@@ -221,7 +221,7 @@ fun drawBossBar(g: G, e: En, name: String, tag: String, ticks: DoubleArray, col:
     g.fillText(scr((if (tag.isNotEmpty()) "$tag  " else "") + Math.ceil(r * 100).toInt() + "%"), x0 + w2 - 6, 99.0); g.textAlign = "left"
 }
 fun drawBossArrow(g: G, e: En, cx: Double, cy: Double) {
-    val sx = e.x + cx; val sy = e.y + cy; val m = 34.0
+    val sx = W / 2 + (e.x + cx - W / 2) * ZM; val sy = H / 2 + (e.y + cy - H / 2) * ZM; val m = 34.0
     if (sx > -10 && sx < W + 10 && sy > -10 && sy < H + 10) return
     val a = atan2(sy - H / 2, sx - W / 2); val hx = W / 2 - m; val hy = H / 2 - m
     val k = Math.min(hx / Math.max(1e-6, Math.abs(cos(a))), hy / Math.max(1e-6, Math.abs(sin(a))))
@@ -465,8 +465,8 @@ private fun bgChunk(cx: Int, cy: Int): BgChunk {
 }
 private fun drawBG(g: G, cm: DoubleArray) {
     val T = 32
-    val x0 = fl((cm[0] - W / 2) / T).toInt() - 1; val y0 = fl((cm[1] - H / 2) / T).toInt() - 1
-    val x1 = x0 + Math.ceil(W / T).toInt() + 3; val y1 = y0 + Math.ceil(H / T).toInt() + 3
+    val x0 = fl((cm[0] - W / 2 / ZM) / T).toInt() - 1; val y0 = fl((cm[1] - H / 2 / ZM) / T).toInt() - 1
+    val x1 = x0 + Math.ceil(W / ZM / T).toInt() + 3; val y1 = y0 + Math.ceil(H / ZM / T).toInt() + 3
     val gl = ArrayList<LongArray>()
     val cx0 = x0 shr 3; val cy0 = y0 shr 3; val cx1 = x1 shr 3; val cy1 = y1 shr 3
     bgLim = Math.max(48, (cx1 - cx0 + 1) * (cy1 - cy0 + 1) * 2)
@@ -498,6 +498,30 @@ private fun drawSticks(g: G) {
     }
     if (manual) { one(joy, bs.lx, bs.ly, "#ffffff", "이동"); one(aimJ, bs.rx, bs.ry, "#ffd24a", "조준") }
     else { if (joy != null) one(joy, bs.lx, bs.ly, "#ffffff", ""); if (aimJ != null) one(aimJ, bs.rx, bs.ry, "#ffd24a", "") }
+    g.restore()
+}
+// ===== 줌 막대: 화면 오른쪽 가장자리, 위로 끌면 가깝게·아래로 끌면 넓게 (웹판 zmBar/zmHit/zmSet/drawZoom과 같음) =====
+var zmDrag = false
+class ZB(val x: Double, val y: Double, val h: Double)
+fun zmBar() = ZB(W - 24 - SAR, rd(H * .3), Math.min(150.0, rd(H * .25)))
+fun zmOn(): Boolean { val s = Sn ?: return false; return s.run && !s.pz && !s.ended && s.gl <= 0 && s.tf <= 0 }
+fun zmHit(px: Double, py: Double): Boolean { val b = zmBar(); return zmOn() && Math.abs(px - b.x) < 22 && py > b.y - 16 && py < b.y + b.h + 16 }
+fun zmSet(py: Double) {
+    val b = zmBar()
+    var z = ZMX - (ZMX - ZMN) * Math.max(0.0, Math.min(1.0, (py - b.y) / b.h))
+    if (Math.abs(z - 1) < .05) z = 1.0
+    ZM = Math.round(z * 100) / 100.0
+}
+private fun drawZoom(g: G) {
+    if (!zmOn()) return
+    val b = zmBar(); val ky = b.y + b.h * (ZMX - ZM) / (ZMX - ZMN); val y1 = b.y + b.h * (ZMX - 1) / (ZMX - ZMN)
+    g.save(); g.globalAlpha = if (zmDrag) .95 else .5
+    g.fillStyle = "rgba(8,10,24,.6)"; g.fillRect(b.x - 10, b.y - 16, 20.0, b.h + 32)
+    g.fillStyle = "#2c335c"; g.fillRect(b.x - 1, b.y, 2.0, b.h)
+    g.fillStyle = "#8a92b8"; g.fillRect(b.x - 5, rd(y1) - 1, 10.0, 2.0)
+    g.fillStyle = "#5fd8ff"; g.fillRect(b.x - 7, rd(ky) - 4, 14.0, 8.0)
+    g.font(11.0, true); g.textAlign = "center"; g.fillStyle = "#e8ecff"; g.fillText("+", b.x, b.y - 5); g.fillText("-", b.x, b.y + b.h + 13)
+    if (zmDrag) { g.font(12.0, true); g.textAlign = "right"; g.fillText("줌 x" + String.format(java.util.Locale.US, "%.2f", ZM), b.x - 16, ky + 4) }
     g.restore()
 }
 /** 화면 가장자리 그라데이션(어둡게/붉게)을 화면 크기 그림으로 한 번만 만들어 둔다.
@@ -546,7 +570,7 @@ fun draw(g: G) {
     if (S.gl > 0 && S.snap != null) { drawGlitch(g); return }
     val sx = (rnd() - .5) * S.sh; val sy = (rnd() - .5) * S.sh
     val cm = camPos(); val cx = W / 2 - cm[0] + sx; val cy = H / 2 - cm[1] + sy
-    g.save(); g.translate(rd(cx), rd(cy))
+    g.save(); g.translate(rd(W / 2), rd(H / 2)); g.scale(ZM, ZM); g.translate(rd(cx) - rd(W / 2), rd(cy) - rd(H / 2))
     drawBG(g, cm)
     mk(1)
     for (mn in S.mn) {
@@ -566,7 +590,7 @@ fun draw(g: G) {
         val s = GS[q.k] ?: GS["crawl"]!!; val w = s.n.w * s.sc; val h = s.n.h * s.sc; val b = rd(sin(S.t * 4 + q.x * .1) * 2)
         g.drawImage(s.n, rd(q.x - w / 2), rd(q.y - h / 2 + b), w, h)
     }
-    val cvx = W / 2 + 240; val cvy = H / 2 + 240
+    val cvx = W / 2 / ZM + 240; val cvy = H / 2 / ZM + 240
     for (e in S.en) {
         if (e.hid || (!e.boss && (Math.abs(e.x - cm[0]) > cvx || Math.abs(e.y - cm[1]) > cvy))) continue // 화면 밖 적은 그리지 않음
         val s = ES[e.c] ?: ES["crawl"]!!
@@ -806,7 +830,7 @@ fun draw(g: G) {
     g.restore()
     if (S.mt > 0) { g.fit(S.msg, W - 16 - SAL - SAR, 26.0, true, 13.0); g.fillStyle = "#f55"; g.textAlign = "center"; g.fillText(S.msg, W / 2 - SAL, if (CL) Math.max(PY + PH + 28 + (if (S.cb >= 3) 20 else 0), if (S.rl.values.any { it > 0 }) PY + PH + 56 else 0.0) else 80.0); g.textAlign = "left" }
     g.restore()
-    drawSticks(g)
+    drawSticks(g); drawZoom(g)
     mk(7)
     if (S.sw > 0) {
         g.fillStyle = "rgba(60,255,255,.09)"; g.fillRect(0.0, 0.0, W, H); g.font(16.0, true); g.textAlign = "center"; g.fillStyle = "#99ffff"; g.fillText("입력 반전", W / 2, H * .3); g.textAlign = "left"

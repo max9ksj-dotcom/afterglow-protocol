@@ -8,6 +8,12 @@ const val TAU = 6.283
 var W = 400.0
 var H = 800.0
 var FX = 2
+/** 게임 화면 줌(1 = 기본, 작을수록 넓게 보임). 화면 오른쪽 줌 막대로 바꾼다 */
+var ZM = 1.0
+const val ZMN = .6
+const val ZMX = 1.5
+/** 실제로 적용되는 배속: 2페이지 보스전은 1배속 고정 */
+fun spE(): Int = Sn?.let { if (it.pg == 2) 1 else it.sp } ?: 1
 fun FA(): Double = doubleArrayOf(0.0, .5, 1.0, 1.6)[FX]
 fun hyp(a: Double, b: Double) = Math.sqrt(a * a + b * b)
 fun rnd() = Math.random()
@@ -470,7 +476,7 @@ fun pickE(): String {
 }
 fun spawn(k: String, x: Double? = null, y: Double? = null): En? {
     if (k != "boss" && k != "hboss" && k != "rival" && aliveN() >= CAP) return null
-    val D = ED[k]!!; val tm = tmf(); val a = rnd() * TAU; val d = hyp(W, H) * .55 + 30; val b = k == "boss"
+    val D = ED[k]!!; val tm = tmf(); val a = rnd() * TAU; val d = (hyp(W, H) * .55 + 30) / Math.min(1.0, ZM); val b = k == "boss"
     val hp = (if (b) D.hp else D.hp * 1.8 * (1 + .18 * tm) * (if (S.pg > 1) 1.5 else 1.0)) * eHp()
     val e = En(k)
     e.col = CLR[k]!!; e.x = x ?: (P.x + cos(a) * d); e.y = y ?: (P.y + sin(a) * d); e.hp = hp; e.mh = hp
@@ -662,8 +668,8 @@ fun rivalAtk(e: En, k: String, a: Double) {
     bugName(e, RVN[dl] ?: "ERROR"); snd(240.0, .12, "triangle", .05)
 }
 fun FM(ph: Int) = 1 + .18 * ph
-fun HW() = Math.min(W, 700.0) / 2
-fun HH() = Math.min(H, 700.0) / 2
+fun HW() = Math.min(W, 700.0) / 2 / Math.min(1.0, ZM)
+fun HH() = Math.min(H, 700.0) / 2 / Math.min(1.0, ZM)
 fun ew(s: List<Char>, l: Double) { S.fx.add(Fx('e', l, l).also { it.s = s }) }
 
 // 2페이지 보스 패턴 13종
@@ -763,7 +769,7 @@ fun hbAtk(e: En, dt: Double) {
 // ===== 매 프레임 갱신 =====
 fun upd(dt0: Double) {
     var dt = dt0
-    if (S.hs > 0) { S.hs -= dt; dt *= .04 }
+    if (S.hs > 0) { S.hs -= dt; if (spE() < 2) dt *= .04 }
     S.t += dt; S.rc -= dt; S.rc2 -= dt
     val m = stat(); val tm = tmf()
     var vx0 = joy?.x ?: 0.0; var vy0 = joy?.y ?: 0.0
@@ -962,7 +968,7 @@ fun upd(dt0: Double) {
         }
     }
     S.mn.removeAll { it.x_ }
-    val far = hyp(W, H) * 1.2
+    val far = hyp(W, H) * 1.2 / Math.min(1.0, ZM)
     S.en.removeAll { it.dead || hyp(it.x - P.x, it.y - P.y) >= far }
     val RMG = 1 + tb("mg") + up("mg") + relX().mg
     S.gm.each { gm ->
@@ -1248,7 +1254,7 @@ fun glUpd(dt: Double) {
 }
 fun clearField() { S.cp.clear(); S.en.clear(); S.pr.clear(); S.ep.clear(); S.mn.clear(); S.fx.clear(); S.pt.clear(); S.q.clear(); S.gm.clear(); S.os.clear() }
 fun nextPage() {
-    S.pg = 2; bgmSet("boss"); S.t = 0.0; S.T = 180.0; S.boss = true; S.bg = false; S.dc = 0.0; S.cin = 0.0; S.cl = false
+    S.pg = 2; spLab(); bgmSet("boss"); S.t = 0.0; S.T = 180.0; S.boss = true; S.bg = false; S.dc = 0.0; S.cin = 0.0; S.cl = false
     clearField()
     S.sc = 0.0; S.rn = 0.0; S.nk = 0.0; S.cb = 0; S.lt = -9.0; S.snap = null; S.gl = 0.0; S.pull = null; P.slow = 0.0; P.hp = Math.max(P.hp, P.mh * .6); P.inv = 2.5
     S.ck = List(14) { i ->
@@ -1278,7 +1284,7 @@ fun toRival() {
     val c = CHR.find { it.id == S.rivalId } ?: CHR[0]
     val bs = listOf("pulse", "blade", "rail", "grav", "orbit", "arc", "frost", "mine").shuffled().take(3)
     val fz = WD.values.filter { it.fz }.map { it.id }.shuffled().take(2)
-    S.pg = 3; S.t = 0.0; S.T = 1e9; S.boss = true; S.bg = false; S.dc = 0.0; S.cin = 0.0
+    S.pg = 3; spLab(); S.t = 0.0; S.T = 1e9; S.boss = true; S.bg = false; S.dc = 0.0; S.cin = 0.0
     clearField()
     S.ck = null; S.hb = null; S.pull = null; P.slow = 0.0; S.hf = 1.0; S.cb = 0; S.nk = 0.0; S.lt = -9.0; P.hp = Math.max(P.hp, P.mh * .6); P.inv = 2.5
     val h = HSC[c.id]!!
@@ -1318,15 +1324,16 @@ fun cinUpd(dt: Double) {
     if (Sn != null) fxStep(dt)
 }
 /** 한 프레임 진행 (원본의 loop) */
-fun tick(dt: Double) {
+fun tick(dt: Double, rw: Double = dt) {
     val s = Sn ?: return
     if (s.gl > 0) glUpd(dt)
     else if (s.tf > 0) tfUpd(dt)
     else if (s.run && !s.pz) {
         if (s.cin > 0 || s.dc > 0) cinUpd(dt)
         else {
-            val sb = if (dt > .034) 2 else 1
-            for (i in 0 until s.sp * sb) if (s.run && s.cin <= 0 && s.dc <= 0) upd(dt / sb)
+            // 실제 흐른 시간 × 배속만큼 정확히 진행한다(느린 기기에서도 게임 속 시간이 배속을 따라감)
+            val tt = Math.max(0.0, Math.min(.1, rw)) * spE(); val n = Math.max(1, Math.min(12, Math.ceil(tt / .034 - 1e-9).toInt()))
+            for (i in 0 until n) if (s.run && s.cin <= 0 && s.dc <= 0) upd(tt / n)
         }
     }
 }
