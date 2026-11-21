@@ -430,7 +430,7 @@ const tmf=()=>S.pg>=4?14+S.fl*2.5+S.fl*S.fl*.1+ftR()*(4+S.fl*.3):Math.min(60,S.t
 function pickE(){const t=S.t+(S.pg>=4?500:S.pg>1?150:0)+(S.xo||0),r=Math.random();if(t>480&&r<.1)return'tank';if(t>420&&r<.2)return'spit';if(t>330&&r<.3)return'bomb';if(t>240&&r<.4)return'charge';if(t>120&&r<.5)return'split';if(t>60&&r<.65)return'bat';return'crawl'}
 function spawn(k,x,y){if(k!='boss'&&k!='hboss'&&k!='rival'&&aliveN()>=CAP)return null;const D=ED[k],tm=tmf(),a=Math.random()*6.283,d=(Math.hypot(W,H)*.55+30)/Math.min(1,ZM),b=k=='boss',hp=(b?D.hp:D.hp*DIF.hp*(1+DIF.grow*tm)*(S.pg>1?1.5:1))*eHp();
  const ne={k,c:k,col:CLR[k],x:x??P.x+Math.cos(a)*d,y:y??P.y+Math.sin(a)*d,hp,mh:hp,sp:D.sp*DIF.spd*(S.pg>1?1.08:1),r:D.r,xp:D.xp,sc:D.sc,boss:b?1:0,fl:0,mk:0,md:0,oc:0,sl:0,ph:Math.random()*6,st:0,cd:1+Math.random()*2,kx:0,ky:0,es:0};ne.sp*=eSp();S.en.push(ne);return ne}
-function bossAtk(e){const x=e.x,y=e.y,R=e.hp<e.mh*.5?210:170;S.fx.push({t:'d',x,y,r:R,l:.9,m:.9});S.q.push({t:.9,f:()=>{S.fx.push({t:'r',x,y,r:R,c:'#f55',l:.4,m:.4});burst(x,y,40,'#f84',420,.6,4);shake(10);snd(70,.35,'sawtooth',.1);if(Math.hypot(P.x-x,P.y-y)<R&&P.inv<=0){P.hp-=25*stat().am;P.inv=invT();stop(.08);S.vg=.6;shake(12)}}})}
+function bossAtk(e){const x=e.x,y=e.y,R=e.hp<e.mh*.6?210:170;S.fx.push({t:'d',x,y,r:R,l:.9,m:.9});S.q.push({t:.9,f:()=>{S.fx.push({t:'r',x,y,r:R,c:'#f55',l:.4,m:.4});burst(x,y,40,'#f84',420,.6,4);shake(10);snd(70,.35,'sawtooth',.1);if(Math.hypot(P.x-x,P.y-y)<R&&P.inv<=0){P.hp-=32*stat().am;P.inv=invT();stop(.08);S.vg=.6;shake(12)}}})}
 // ===== 1페이지 보스(잔광 거수) 공격 패턴 — 모두 미리 경고 표시가 나온 뒤에 맞는다
 function bRing(e,n,off,spd,d){for(let i=0;i<n;i++)hb(e.x,e.y,off+i*6.283/n,spd,d||10,0,null);S.fx.push({t:'r',x:e.x,y:e.y,r:e.r*2.2,c:'#ff7744',l:.35,m:.35});snd(180,.2,'square',.06)}
 const BPT={
@@ -480,7 +480,7 @@ function upd(dt){
  S.sc-=dt;if(S.sc<=0&&S.pg<2){const n=Math.min(Math.min(8,1+Math.floor(tm/2.5)),CAP-aliveN());for(let i=0;i<n;i++)spawn(pickE());S.sc=Math.max(.2,.85-.04*tm)*(S.bo&&!S.bo.dead&&S.bo.k=='boss'?2:1)}
  deepUpd(dt);S.tt=(S.tt||0)+dt;S.elt-=dt;if(S.elt<=0&&(S.pg<2||(S.mut&&S.mut.id=='elite'))){S.elt=S.pg<2?Math.max(50,70-S.t/27):14;if(!S.en.some(x=>x.el&&!x.dead)&&aliveN()<CAP){let ty,tr=0;do{ty=pickE()}while(ty=='mini'&&tr++<8);const e=spawn(ty);if(e){e.el=1;e.hp*=6;e.mh=e.hp;e.sc+=ty=='tank'?2:1;e.r=Math.round(e.r*1.3);e.sp*=1.05;e.xp*=5;e.ec=2.5;if(ELD[ty]){if(ELD[ty].r)e.c='E_'+ty;e.en=ELD[ty].n;e.col=ELD[ty].p[1]}S.msg='엘리트 출현! '+(e.en||'')+' (처치하면 유물)';S.mt=2.5}}}
  S.rn-=dt;if(S.rn<=0&&S.t>45&&S.pg<2&&!(S.bo&&!S.bo.dead)){S.rn=Math.max(12,24-S.t/45);let c=0;const wn=Math.min(12,8+Math.floor(S.t/120));for(let i=0;i<wn;i++){const an=i*6.283/wn,e=spawn('crawl',P.x+Math.cos(an)*290,P.y+Math.sin(an)*290);if(e){c++;S.fx.push({t:'r',x:e.x,y:e.y,r:26,c:'#e55',l:.4,m:.4})}}if(c>3){S.msg='포위!';S.mt=1.5}}
- if(!S.boss&&S.t>=540){S.boss=1;const ba=Math.random()*6.283;spawn('boss',P.x+Math.cos(ba)*300,P.y+Math.sin(ba)*300);S.bo=S.en[S.en.length-1];S.cin=2.6;S.cl=0}
+ if(!S.boss&&S.t>=540){S.boss=1;const ba=Math.random()*6.283;spawn('boss',P.x+Math.cos(ba)*300,P.y+Math.sin(ba)*300);S.bo=S.en[S.en.length-1];S.bo.hp=S.bo.mh=S.bo.hp*1.8;S.cin=2.6;S.cl=0}
  S.mt-=dt;
  for(const k in S.ws){const w=S.ws[k];if(k=='orbit')continue;w.t-=dt;if(w.t<=0){w.t=fire(k,w)?Math.max(.15,WD[k].i*m.iv*(1-.06*wa(k,'rld'))):.1}}
  {const o=OB();if(o){S.oct=(S.oct||0)+dt;S.oa+=3.4*dt;const r=o.r*m.ar,ov=oVis();
@@ -510,14 +510,14 @@ function upd(dt){
      if(ph>=1&&e.cast%3==0){const pool=ph>=2?[0,1,2,3,4,6,7,8,9,10,11,12]:[0,1,2,3,4,6,9],hk=pool[Math.random()*pool.length|0];bugName(e,HPT[hk][0]);HPT[hk][1](e,Math.min(2,ph))}}}
    else if(e.st==1){sp=0;if(e.cd<=0){e.st=2;e.cd=.4}}
    else{sp=0;vx=e.dx*(470+ph*30);vy=e.dy*(470+ph*30);if(e.cd<=0){e.st=0;e.cd=.8;if(e.rd)rvR(e.rd,e.x,e.y,e.dc||12)}}}
-  else if(e.k=='boss'){const rage=e.hp<e.mh*.5;if(rage&&!e.rg)bossRage(e);if(e.rg&&!e.ds&&e.hp<e.mh*.2)bossLast(e);
-   if(e.st==0){if(rage)sp*=1.4;if(e.cd<=0){e.cd=rage?3:4.2;e.na=(e.na||0)+1;if(e.na%3==0){e.st=1;e.cd=.9;e.dx=Math.cos(a);e.dy=Math.sin(a)}else{const k=bossPick(e,rage);BPT[k].f(e,rage);bugName(e,BPT[k].n)}}}
+  else if(e.k=='boss'){const rage=e.hp<e.mh*.6;if(rage&&!e.rg)bossRage(e);if(e.rg&&!e.ds&&e.hp<e.mh*.2)bossLast(e);
+   if(e.st==0){if(rage)sp*=1.4;if(e.cd<=0){e.cd=rage?2.4:3.4;e.na=(e.na||0)+1;if(e.na%3==0){e.st=1;e.cd=.9;e.dx=Math.cos(a);e.dy=Math.sin(a)}else{const k=bossPick(e,rage);BPT[k].f(e,rage);bugName(e,BPT[k].n)}}}
    else if(e.st==1){sp=0;if(e.cd<=0){e.st=2;e.cd=.55}}
    else{sp=0;vx=e.dx*470;vy=e.dy*470;if(e.cd<=0){e.st=0;e.cd=rage?2.2:2.6;if(rage)bRing(e,12,Math.random()*6,150,9)}}
-   e.sm=(e.sm||0)+dt;if(e.sm>14){e.sm=0;let c=0;for(let i=0;i<5;i++)if(spawn('crawl',e.x+Math.cos(i*1.25)*60,e.y+Math.sin(i*1.25)*60))c++;if(c){S.msg='심연의 새끼들!';S.mt=2}}}
+   e.sm=(e.sm||0)+dt;if(e.sm>10){e.sm=0;let c=0;for(let i=0;i<7;i++)if(spawn('crawl',e.x+Math.cos(i*.898)*60,e.y+Math.sin(i*.898)*60))c++;if(c){S.msg='심연의 새끼들!';S.mt=2}}}
   if(e.el&&ELD[e.k])eliteAI(e,dt,a,dd);
   e.x+=(Math.cos(a)*sp+vx+e.kx)*dt;e.y+=(Math.sin(a)*sp+vy+e.ky)*dt;const kd=Math.pow(.003,dt);e.kx*=kd;e.ky*=kd;
-  if(P.inv<=0&&!e.inv&&Math.hypot(P.x-e.x,P.y-e.y)<e.r+12){P.hp-=(e.boss?22:10)*m.am;P.inv=invT();shake(8);stop(.07);S.vg=.55;burst(P.x,P.y,14,'#f55',280,.4,4);snd(90,.22,'sawtooth',.09)}}
+  if(P.inv<=0&&!e.inv&&Math.hypot(P.x-e.x,P.y-e.y)<e.r+12){P.hp-=(e.boss?30:10)*m.am;P.inv=invT();shake(8);stop(.07);S.vg=.55;burst(P.x,P.y,14,'#f55',280,.4,4);snd(90,.22,'sawtooth',.09)}}
  for(const q of S.ep){q.l-=dt;if(q.h){const ca=Math.atan2(q.vy,q.vx),sp0=Math.hypot(q.vx,q.vy);let df=Math.atan2(P.y-q.y,P.x-q.x)-ca;while(df>Math.PI)df-=6.283;while(df<-Math.PI)df+=6.283;const na=ca+Math.max(-q.h*dt,Math.min(q.h*dt,df));q.vx=Math.cos(na)*sp0;q.vy=Math.sin(na)*sp0}
   q.x+=q.vx*dt;q.y+=q.vy*dt;if(P.inv<=0&&Math.hypot(P.x-q.x,P.y-q.y)<14){q.l=0;hurtP(q.d||8);if(q.rd)rvR(q.rd,q.x,q.y,q.d||8)}}
  if(S.os&&S.os.length){if(S.bo&&!S.bo.dead){for(const o of S.os){o.t-=dt;o.a+=3*dt;o.cd-=dt;for(let i=0;i<4;i++){const an=o.a+i*1.571,x=S.bo.x+Math.cos(an)*85,y=S.bo.y+Math.sin(an)*85;if(o.cd<=0&&P.inv<=0&&Math.hypot(P.x-x,P.y-y)<20){hurtP(o.d);o.cd=.6;if(o.rd)rvR(o.rd,x,y,o.d)}}}S.os=S.os.filter(o=>o.t>0)}else S.os=[]}
