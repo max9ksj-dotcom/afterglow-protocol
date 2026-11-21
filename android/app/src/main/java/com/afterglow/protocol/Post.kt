@@ -4,9 +4,9 @@ package com.afterglow.protocol
 
 fun ocN(): Int = Sn?.oc ?: 0
 fun ocP(): Double = 1 + .25 * ocN()
-fun dmgMul(): Double = (1 + .12 * ocN()) * (Sn?.let { s -> if (s.pg >= 4) (1 + .1 * s.fl + .004 * s.fl * s.fl) * (1 + .3 * ftR()) else if (s.pg < 2) 1 + .3 * tmR() else 1.0 } ?: 1.0)
-fun eHp(): Double = (1 + .35 * ocN()) * (if (S.pg >= 4) Math.pow(1.25, S.fl.toDouble()) else 1.0) * (if (S.mut?.id == "swarm") .7 else 1.0)
-fun eSp(): Double = (1 + .03 * ocN()) * (if (S.mut?.id == "fast") 1.3 else 1.0) * (if (S.pg >= 4) 1 + Math.min(.4, .015 * S.fl + .1 * ftR()) else if (S.pg < 2) 1 + Math.min(.35, .1 * tmR()) else 1.0)
+fun dmgMul(): Double = (1 + .12 * ocN()) * (Sn?.let { s -> if (s.pg >= 4) (1 + .12 * s.fl + .006 * s.fl * s.fl) * (1 + .3 * ftR()) else if (s.pg < 2) 1 + .5 * tmR() else 1.0 } ?: 1.0)
+fun eHp(): Double = (1 + .35 * ocN()) * (if (S.pg >= 4) Math.pow(1.32, S.fl.toDouble()) else 1.0) * (if (S.mut?.id == "swarm") .7 else 1.0)
+fun eSp(): Double = (1 + .03 * ocN()) * (if (S.mut?.id == "fast") 1.3 else 1.0) * (if (S.pg >= 4) 1 + Math.min(.55, .02 * S.fl + .1 * ftR()) else if (S.pg < 2) 1 + Math.min(.5, .15 * tmR()) else 1.0)
 
 fun xv(k: String): Int {
     val x = SV.x
