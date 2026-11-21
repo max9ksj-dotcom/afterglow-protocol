@@ -78,7 +78,7 @@ class St(val w0: String, @JvmField var T: Double) {
     var hf = 1.0; var xo = 0.0; var lastSwap: Double? = null; var rivalId: String? = null; var rcs: Spr? = null; var t3 = false
     var cur: List<Opt> = emptyList(); var bonus = false
     var oc = 0; var fl = 0; var mut: Mut? = null; var mk2 = 0.0; var db = 0.0; var da = 0.0; var dv = 0.0; var tt = 0.0; var cr0 = 0; var rush = false
-    val wo = ArrayList<Wo>(); var gd = 0.0; var chn = 0; var wst = 0.0; val bks = LinkedHashMap<String, Int>(); val bkv = HashMap<String, Double>()
+    val wo = ArrayList<Wo>(); var gd = 0.0; var chn = 0; var wst = 0.0; var wft = 0.0; var wbt = 0.0; val bks = LinkedHashMap<String, Int>(); val bkv = HashMap<String, Double>()
     val na = ArrayList<String>()
 }
 
@@ -153,10 +153,22 @@ fun bugName(e: En, txt: String) {
     S.fx.add(Fx('m', 1.2, 1.2).also { it.x = e.x; it.y = e.y - e.r - 30; it.txt = txt })
     S.bt = Math.max(S.bt, .18)
 }
-/** 레벨업 필요 경험치(웹판 xpNeed): Lv10까지 6+Lv×4, 그 뒤 (Lv-10)²×0.25 추가 */
-fun xpNeed(l: Int): Double = 6.0 + l * 4 + Math.round(.25 * Math.pow(Math.max(0, l - 10).toDouble(), 2.0))
+/** 레벨업 필요 경험치(웹판 xpNeed): Lv8까지 6+Lv×4, 그 뒤 (Lv-8)²×0.5 추가 */
+fun xpNeed(l: Int): Double = 6.0 + l * 4 + Math.round(.5 * Math.pow(Math.max(0, l - 8).toDouble(), 2.0))
 /** 경험치 보너스 상한(웹판 xpB): +100%를 넘으면 점점 덜 오르고 최대 +200% */
 fun xpB(b: Double): Double = if (b <= 1) b else 1 + (b - 1) / b
+/** 엘리트 하나 소환(시간마다·도전 비석, 웹판 elSpawn과 같음) */
+fun elSpawn(x: Double? = null, y: Double? = null): En? {
+    var ty: String; var tr = 0
+    do { ty = pickE() } while (ty == "mini" && tr++ < 8)
+    val e = spawn(ty, x, y)
+    if (e != null) {
+        e.el = true; e.hp *= 6; e.mh = e.hp; e.sc += if (ty == "tank") 2 else 1; e.r = Math.round(e.r * 1.3).toDouble(); e.sp *= 1.05; e.xp *= 5; e.ec = 2.5
+        ELD[ty]?.let { d -> if (d.r.isNotEmpty()) e.c = "E_$ty"; e.en = d.n; e.col = d.p[1] }
+        S.msg = "엘리트 출현! " + (e.en ?: "") + " (처치하면 유물)"; S.mt = 2.5
+    }
+    return e
+}
 fun gainXP(v: Double) { P.xp += v * (if (S.mut?.id == "drain") 2 else 1) * (1 + xpB(tb("xp") + up("xp") + bv("xp"))) * (1 + Math.min(.5 + .5 * rlc("combo"), S.cb * .02)) }
 
 // ===== 합체 무기 부가 효과 =====
@@ -843,16 +855,7 @@ fun upd(dt0: Double) {
     S.elt -= dt
     if (S.elt <= 0 && (S.pg < 2 || S.mut?.id == "elite")) {
         S.elt = if (S.pg < 2) Math.max(50.0, 70 - S.t / 27) else 14.0
-        if (!S.en.any { it.el && !it.dead } && aliveN() < CAP) {
-            var ty: String; var tr = 0
-            do { ty = pickE() } while (ty == "mini" && tr++ < 8)
-            val e = spawn(ty)
-            if (e != null) {
-                e.el = true; e.hp *= 6; e.mh = e.hp; e.sc += if (ty == "tank") 2 else 1; e.r = Math.round(e.r * 1.3).toDouble(); e.sp *= 1.05; e.xp *= 5; e.ec = 2.5
-                ELD[ty]?.let { d -> if (d.r.isNotEmpty()) e.c = "E_$ty"; e.en = d.n; e.col = d.p[1] }
-                S.msg = "엘리트 출현! " + (e.en ?: "") + " (처치하면 유물)"; S.mt = 2.5
-            }
-        }
+        if (!S.en.any { it.el && !it.dead } && aliveN() < CAP) elSpawn()
     }
     S.rn -= dt
     if (S.rn <= 0 && S.t > 45 && S.pg < 2 && S.bo?.dead != false) {

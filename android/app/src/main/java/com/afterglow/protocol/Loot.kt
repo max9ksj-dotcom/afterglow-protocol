@@ -23,7 +23,7 @@ class Wo(val t: Char, var x: Double, var y: Double) { var c = 0.0; var nm = 0.0;
 private val WSC = HashMap<String, Spr>()
 fun wos(k: String, v: String = ""): Spr = WSC.getOrPut(k + v) {
     val p = HashMap(WOP)
-    when (v) { "d" -> { p['C'] = "#3f8fb0"; p['V'] = "#5fd8ff"; p['c'] = "#2c335c" }; "b" -> { p['c'] = "#e0faff"; p['C'] = "#e0faff"; p['V'] = "#ffffff" }; "y" -> p['f'] = "#ffd24a" }
+    when (v) { "d" -> { p['C'] = "#3f8fb0"; p['V'] = "#5fd8ff"; p['c'] = "#2c335c"; p['e'] = "#2c5a3a"; p['E'] = "#4a7a5a"; p['r'] = "#5a1a1a"; p['R'] = "#7a3a3a" }; "g" -> p['f'] = "#5dff8a"; "r" -> p['f'] = "#ff3b3b"; "b" -> { p['c'] = "#e0faff"; p['C'] = "#e0faff"; p['V'] = "#ffffff" }; "y" -> p['f'] = "#ffd24a" }
     mkS(WOS[k]!!, p)
 }
 
@@ -78,6 +78,7 @@ fun woUpd(dt: Double) {
     val ns = S.wo.count { it.t == 's' && !it.g }; val nc = S.wo.count { it.t == 'c' && !it.g }
     if (ns < 2 && S.wst <= 0) S.wo.add(woSpot('s'))
     if (nc < 2) S.wo.add(woSpot('c'))
+    woSpawnX(dt)
     for (o in S.wo) {
         if (o.g) continue
         val d = hyp(o.x - P.x, o.y - P.y)
@@ -85,7 +86,8 @@ fun woUpd(dt: Double) {
             if (d < SHR) { o.c += dt / SHT; if (rnd() < .25) burst(o.x + (rnd() - .5) * SHR, o.y + (rnd() - .5) * SHR, 1.0, "#5fd8ff", 60.0, .5, 2.0) }
             else o.c = Math.max(0.0, o.c - dt / (SHT * 2))
             if (o.c >= 1) { o.g = true; o.ot = .6; S.wst = 30.0; shrineUse(o); return }
-        } else {
+        } else if (o.t != 'c') woX(o, d, dt)
+        else {
             o.nm -= dt
             if (d < 30) {
                 val c = chCost()
@@ -98,10 +100,10 @@ fun woUpd(dt: Double) {
 fun drawWo(g: G) {
     for (o in S.wo) {
         val x = Math.round(o.x).toDouble(); val y = Math.round(o.y).toDouble(); val al = if (o.g) Math.max(0.0, o.ot / (if (o.t == 's') .6 else .8)) else 1.0
-        val s = o.t == 's'; val col = if (s) "#5fd8ff" else "#ffd24a"; val pu = .5 + .5 * sin(S.t * 3 + o.x)
+        val s = o.t == 's'; val col = WOC[o.t] ?: "#ffd24a"; val pu = .5 + .5 * sin(S.t * 3 + o.x)
         g.globalAlpha = al
         // 멀리서도 보이게: 바닥 빛 + 위로 솟는 빛기둥 (1.5배 크기 그림)
-        if (!o.g) {
+        if (!o.g && o.t != 'p') {
             g.lighter = true; g.fillStyle = col
             g.globalAlpha = .18 + .12 * pu; g.fillRect(x - 5, y - 170, 10.0, 150.0)
             g.globalAlpha = .1 + .08 * pu; g.fillRect(x - 10, y - 150, 20.0, 130.0)
@@ -120,7 +122,8 @@ fun drawWo(g: G) {
             val sp = wos("sh", v); val bb = Math.round(sin(S.t * 2.5) * 3).toDouble()
             if (!o.g) { g.lighter = true; g.globalAlpha = .25 + .45 * o.c; g.fillStyle = "#5fd8ff"; g.circleFill(x, y - 50 + bb, 14 + 14 * o.c); g.lighter = false; g.globalAlpha = al }
             g.drawImage(sp, 0.0, 7.0, 16.0, 16.0, x - 24, y - 36, 48.0, 48.0); g.drawImage(sp, 0.0, 0.0, 16.0, 7.0, x - 24, y - 60 + bb, 48.0, 21.0)
-        } else {
+        } else if (o.t != 'c') drawWoX(g, o, x, y)
+        else {
             val op = o.g; val sp = wos(if (op) "cho" else "ch"); val b = if (op) 0.0 else Math.round(sin(S.t * 3 + o.x) * 1.5).toDouble()
             if (op) { g.lighter = true; g.globalAlpha = .5 * al; g.fillStyle = "#ffd24a"; g.circleFill(x, y - 8, 34.0); g.lighter = false; g.globalAlpha = al }
             g.drawImage(sp, x - 24, y - 20 + b, 48.0, 33.0)
@@ -134,17 +137,75 @@ fun drawWo(g: G) {
     }
     g.globalAlpha = 1.0
 }
+// ===== 추가 구조물 (웹판과 같음): 회복 샘 f · 도전 비석 b · 금화 항아리 p =====
+const val FNR = 50.0
+const val FNT = 1.5
+const val FNH = .4
+const val OBR = 40.0
+const val OBT = 1.0
+const val OBG = 30.0
+val WOC = mapOf('s' to "#5fd8ff", 'c' to "#ffd24a", 'f' to "#5dff8a", 'b' to "#ff3b3b", 'p' to "#ffd24a")
+fun woSpawnX(dt: Double) {
+    S.wft -= dt; S.wbt -= dt
+    fun n(t: Char) = S.wo.count { it.t == t && !it.g }
+    if (n('f') < 1 && S.wft <= 0) S.wo.add(woSpot('f'))
+    if (n('b') < 1 && S.wbt <= 0) S.wo.add(woSpot('b'))
+    if (n('p') < 3) { val q = woSpot('p'); for (i in 0 until 4) S.wo.add(Wo('p', q.x + (rnd() - .5) * 90, q.y + (rnd() - .5) * 90)) }
+}
+fun woX(o: Wo, d: Double, dt: Double) {
+    when (o.t) {
+        'p' -> if (d < 26) {
+            o.g = true; o.ot = .3
+            val v = Math.round((3 + Math.floor(rnd() * 6)) * (1 + bv("gd"))).toDouble(); S.gd += v
+            burst(o.x, o.y, 14.0, "#c4701f", 220.0, .5, 3.0); burst(o.x, o.y, 6.0, "#ffd24a", 160.0, .4, 3.0)
+            S.fx.add(Fx('n', .8, .8).also { it.x = o.x - 6; it.y = o.y - 24; it.vs = "+" + v.toInt(); it.cr = true }); snd(380 + rnd() * 120, .08, "square", .04)
+        }
+        'f' -> {
+            if (d < FNR && P.hp < P.mh) { o.c += dt / FNT; if (rnd() < .3) burst(o.x, o.y - 10, 1.0, "#5dff8a", 80.0, .5, 2.0) } else o.c = Math.max(0.0, o.c - dt / (FNT * 2))
+            if (o.c >= 1) {
+                o.g = true; o.ot = .6; S.wft = 45.0
+                val v = Math.round(P.mh * FNH).toDouble(); P.hp = Math.min(P.mh, P.hp + v)
+                burst(P.x, P.y, 30.0, "#5dff8a", 280.0, .7, 4.0); fxR(o.x, o.y, 120.0, "#5dff8a", .5)
+                S.fx.add(Fx('n', 1.0, 1.0).also { it.x = P.x - 10; it.y = P.y - 34; it.vs = "+" + v.toInt(); it.cr = true }); snd(620.0, .35, "triangle", .07)
+                S.msg = "회복 샘: 체력 +" + v.toInt(); S.mt = 1.2
+            }
+        }
+        'b' -> {
+            if (d < OBR) o.c += dt / OBT else o.c = Math.max(0.0, o.c - dt)
+            if (o.c >= 1) {
+                o.g = true; o.ot = .8; S.wbt = 60.0
+                val e = elSpawn(o.x + (rnd() - .5) * 120, o.y - 140)
+                for (i in 0 until 10) { val an = i * .628; spawn("crawl", o.x + cos(an) * 260, o.y + sin(an) * 260) }
+                val v = Math.round(OBG * (1 + bv("gd"))).toDouble(); S.gd += v
+                fxR(o.x, o.y, 260.0, "#ff3b3b", .6); burst(o.x, o.y, 40.0, "#ff3b3b", 380.0, .7, 4.0); shake(10.0); snd(70.0, .5, "sawtooth", .1)
+                S.msg = "도전 비석! 금화 +" + v.toInt() + (if (e?.en != null) " · " + e.en + " 출현" else ""); S.mt = 2.5
+            }
+        }
+    }
+}
+private fun woRing(g: G, x: Double, y: Double, R: Double, c: Double, col: String) {
+    val n = 20; val on = Math.floor(c * n).toInt()
+    for (i in 0 until n) { val a = -1.571 + i.toDouble() / n * TAU; g.fillStyle = if (i < on) col else "rgba(255,255,255,.18)"; g.fillRect(Math.round(x + cos(a) * R) - 2.0, Math.round(y + sin(a) * R) - 2.0, 5.0, 5.0) }
+}
+fun drawWoX(g: G, o: Wo, x: Double, y: Double) {
+    when (o.t) {
+        'p' -> g.drawImage(wos("pot"), x - 12, y - 18, 24.0, 27.0)
+        'f' -> { if (!o.g) woRing(g, x, y, FNR, o.c, "#5dff8a"); g.drawImage(wos("f", if (o.g) "d" else ""), x - 24, y - 30, 48.0, 42.0) }
+        'b' -> { if (!o.g) woRing(g, x, y, OBR, o.c, "#ff3b3b"); g.drawImage(wos("ob", if (o.g) "d" else ""), x - 18, y - 46, 36.0, 54.0) }
+    }
+}
 /** 화면 밖 신전(하늘색)·상자(금색) 방향: 가장자리에 도트 화살표 + 작은 그림 */
 fun drawWoEdge(g: G, cm: DoubleArray) {
     if (!woOn()) return
     for (o in S.wo) {
-        if (o.g) continue
+        if (o.g || o.t == 'p') continue
         val sx = W / 2 + ZM * (o.x - cm[0]); val sy = H / 2 + ZM * (o.y - cm[1])
         if (sx > 0 && sx < W && sy > 0 && sy < H) continue
         val a = Math.atan2(sy - H / 2, sx - W / 2); val m = 20.0
         val k = Math.min((W / 2 - m) / Math.max(.001, Math.abs(cos(a))), (H / 2 - m) / Math.max(.001, Math.abs(sin(a))))
-        val x = W / 2 + cos(a) * k; val y = H / 2 + sin(a) * k; val s = o.t == 's'; val ic = wos(if (s) "shi" else "coin")
-        g.save(); g.globalAlpha = .85; g.translate(Math.round(x).toDouble(), Math.round(y).toDouble()); g.rotate(a); g.drawImage(wos("arr", if (s) "" else "y"), -3.0, -7.0, 14.0, 14.0); g.restore()
+        val x = W / 2 + cos(a) * k; val y = H / 2 + sin(a) * k; val ic = when (o.t) { 's' -> wos("shi"); 'c' -> wos("coin"); else -> null }
+        g.save(); g.globalAlpha = .85; g.translate(Math.round(x).toDouble(), Math.round(y).toDouble()); g.rotate(a); g.drawImage(wos("arr", when (o.t) { 's' -> ""; 'c' -> "y"; 'f' -> "g"; else -> "r" }), -3.0, -7.0, 14.0, 14.0); g.restore()
+        if (ic == null) continue
         g.globalAlpha = .85; g.drawImage(ic, Math.round(x - cos(a) * 18 - ic.w).toDouble(), Math.round(y - sin(a) * 18 - ic.h).toDouble(), ic.w * 2, ic.h * 2); g.globalAlpha = 1.0
     }
 }
