@@ -489,11 +489,11 @@ fun spawn(k: String, x: Double? = null, y: Double? = null): En? {
 
 // ===== 1페이지 보스 =====
 fun bossAtk(e: En) {
-    val x = e.x; val y = e.y; val R = if (e.hp < e.mh * .5) 210.0 else 170.0
+    val x = e.x; val y = e.y; val R = if (e.hp < e.mh * .6) 210.0 else 170.0
     fxD(x, y, R, .9)
     S.q.add(Q(.9) {
         fxR(x, y, R, "#f55", .4); burst(x, y, 40.0, "#f84", 420.0, .6, 4.0); shake(10.0); snd(70.0, .35, "sawtooth", .1)
-        if (hyp(P.x - x, P.y - y) < R && P.inv <= 0) { P.hp -= 25 * stat().am; P.inv = invT(); stop(.08); S.vg = .6; shake(12.0) }
+        if (hyp(P.x - x, P.y - y) < R && P.inv <= 0) { P.hp -= 32 * stat().am; P.inv = invT(); stop(.08); S.vg = .6; shake(12.0) }
     })
 }
 fun bRing(e: En, n: Int, off: Double, spd: Double, d: Double) {
@@ -865,7 +865,7 @@ fun upd(dt0: Double) {
     if (!S.boss && S.t >= 540) {
         S.boss = true
         val ba = rnd() * TAU
-        S.bo = spawn("boss", P.x + cos(ba) * 300, P.y + sin(ba) * 300); S.cin = 2.6; S.cl = false
+        S.bo = spawn("boss", P.x + cos(ba) * 300, P.y + sin(ba) * 300); S.bo?.let { it.hp *= 1.8; it.mh = it.hp }; S.cin = 2.6; S.cl = false
     }
     S.mt -= dt
     for ((k, w) in S.ws.entries.toList()) {
@@ -1116,13 +1116,13 @@ private fun enemyStep(e: En, dt: Double, m: Stat) {
             }
         }
         "boss" -> {
-            val rage = e.hp < e.mh * .5
+            val rage = e.hp < e.mh * .6
             if (rage && !e.rg) bossRage(e)
             if (e.rg && !e.ds && e.hp < e.mh * .2) bossLast(e)
             if (e.st == 0) {
                 if (rage) sp *= 1.4
                 if (e.cd <= 0) {
-                    e.cd = if (rage) 3.0 else 4.2; e.na++
+                    e.cd = if (rage) 2.4 else 3.4; e.na++
                     if (e.na % 3 == 0) { e.st = 1; e.cd = .9; e.dx = cos(a); e.dy = sin(a) }
                     else { val k = bossPick(e, rage); bptFire(k, e, rage); bugName(e, BPTN[k]!!) }
                 }
@@ -1132,10 +1132,10 @@ private fun enemyStep(e: En, dt: Double, m: Stat) {
                 if (e.cd <= 0) { e.st = 0; e.cd = if (rage) 2.2 else 2.6; if (rage) bRing(e, 12, rnd() * 6, 150.0, 9.0) }
             }
             e.sm += dt
-            if (e.sm > 14) {
+            if (e.sm > 10) {
                 e.sm = 0.0
                 var c = 0
-                for (i in 0 until 5) if (spawn("crawl", e.x + cos(i * 1.25) * 60, e.y + sin(i * 1.25) * 60) != null) c++
+                for (i in 0 until 7) if (spawn("crawl", e.x + cos(i * .898) * 60, e.y + sin(i * .898) * 60) != null) c++
                 if (c > 0) { S.msg = "심연의 새끼들!"; S.mt = 2.0 }
             }
         }
@@ -1145,7 +1145,7 @@ private fun enemyStep(e: En, dt: Double, m: Stat) {
     val kd = Math.pow(.003, dt)
     e.kx *= kd; e.ky *= kd
     if (P.inv <= 0 && !e.inv && hyp(P.x - e.x, P.y - e.y) < e.r + 12) {
-        P.hp -= (if (e.boss) 22 else 10) * m.am; P.inv = invT(); shake(8.0); stop(.07); S.vg = .55; burst(P.x, P.y, 14.0, "#f55", 280.0, .4, 4.0); snd(90.0, .22, "sawtooth", .09)
+        P.hp -= (if (e.boss) 30 else 10) * m.am; P.inv = invT(); shake(8.0); stop(.07); S.vg = .55; burst(P.x, P.y, 14.0, "#f55", 280.0, .4, 4.0); snd(90.0, .22, "sawtooth", .09)
     }
 }
 
