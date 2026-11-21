@@ -44,12 +44,12 @@ fun bkAdd(k: String, v0: Double) {
     S.bkv[k] = (S.bkv[k] ?: 0.0) + v
 }
 fun bkOpts(mn: Int): List<Opt> {
-    val o = ArrayList<Opt>(); val n = S.bk.size
+    val o = ArrayList<Opt>(); val n = S.bks.size
     for ((k, B) in BK) {
-        val l = S.bk[k] ?: 0
+        val l = S.bks[k] ?: 0
         if (l >= BKX || (l == 0 && n >= BKS)) continue
         val r = rar(mn); val v = B.v * BKM[r]
-        o.add(Opt("[" + RGN[r] + "] " + B.n + " Lv" + l + " → " + (l + 1), bkFmt(k, v), ic = B.ic, tg = "능력치 책", tc = RGC[r], lv = l, mx = BKX) { S.bk[k] = l + 1; bkAdd(k, v) })
+        o.add(Opt("[" + RGN[r] + "] " + B.n + " Lv" + l + " → " + (l + 1), bkFmt(k, v), ic = B.ic, tg = "능력치 책", tc = RGC[r], lv = l, mx = BKX) { S.bks[k] = l + 1; bkAdd(k, v) })
     }
     return o
 }

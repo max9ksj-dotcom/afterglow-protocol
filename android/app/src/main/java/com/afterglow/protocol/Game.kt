@@ -78,7 +78,7 @@ class St(val w0: String, @JvmField var T: Double) {
     var hf = 1.0; var xo = 0.0; var lastSwap: Double? = null; var rivalId: String? = null; var rcs: Spr? = null; var t3 = false
     var cur: List<Opt> = emptyList(); var bonus = false
     var oc = 0; var fl = 0; var mut: Mut? = null; var mk2 = 0.0; var db = 0.0; var da = 0.0; var dv = 0.0; var tt = 0.0; var cr0 = 0; var rush = false
-    val wo = ArrayList<Wo>(); var gd = 0.0; var chn = 0; var wst = 0.0; val bk = LinkedHashMap<String, Int>(); val bkv = HashMap<String, Double>()
+    val wo = ArrayList<Wo>(); var gd = 0.0; var chn = 0; var wst = 0.0; val bks = LinkedHashMap<String, Int>(); val bkv = HashMap<String, Double>()
     val na = ArrayList<String>()
 }
 
