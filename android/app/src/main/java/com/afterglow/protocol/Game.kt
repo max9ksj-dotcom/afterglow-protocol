@@ -462,10 +462,10 @@ val ED = mapOf("crawl" to Ed(30.0, 70.0, 11.0, 1.0, 2.0), "bat" to Ed(18.0, 95.0
 val CLR = mapOf("crawl" to "#e55", "bat" to "#e88", "charge" to "#b86a3a", "split" to "#6d4", "mini" to "#6d4", "spit" to "#c4c", "tank" to "#6a8aa8", "bomb" to "#fa3", "hboss" to "#c4506a", "rival" to "#ff8ad8", "boss" to "#c4506a")
 const val CAP = 150
 fun aliveN(): Int { var n = 0; S.en.each { if (!it.dead && (!it.inv || it.hid)) n++ }; return n }
-/** 난이도 곡선(웹판 tmf와 같음): 1페이지 t/30×(1+t/600)(상한 45), 심층은 층마다 급격히 + 층 안 45초 동안에도 오름 */
+/** 난이도 곡선(웹판 tmf와 같음): 1페이지 t/30×(1+t/300)(상한 60), 심층은 층마다 급격히 + 층 안 45초 동안에도 오름 */
 fun ftR() = Math.min(S.t, 45.0) / 45
 fun tmR() = Math.pow(Math.min(S.t, 540.0) / 300, 2.0)
-fun tmf() = if (S.pg >= 4) 14 + S.fl * 2.5 + S.fl * S.fl * .1 + ftR() * (4 + S.fl * .3) else Math.min(45.0, S.t / 30 * (1 + S.t / 600))
+fun tmf() = if (S.pg >= 4) 14 + S.fl * 2.5 + S.fl * S.fl * .1 + ftR() * (4 + S.fl * .3) else Math.min(60.0, S.t / 30 * (1 + S.t / 300))
 fun pickE(): String {
     val t = S.t + (if (S.pg >= 4) 500 else if (S.pg > 1) 150 else 0) + S.xo; val r = rnd()
     if (t > 480 && r < .1) return "tank"
@@ -838,7 +838,7 @@ fun upd(dt0: Double) {
     deepUpd(dt); S.tt += dt
     S.elt -= dt
     if (S.elt <= 0 && (S.pg < 2 || S.mut?.id == "elite")) {
-        S.elt = if (S.pg < 2) 70.0 else 14.0
+        S.elt = if (S.pg < 2) Math.max(50.0, 70 - S.t / 27) else 14.0
         if (!S.en.any { it.el && !it.dead } && aliveN() < CAP) {
             var ty: String; var tr = 0
             do { ty = pickE() } while (ty == "mini" && tr++ < 8)
@@ -852,10 +852,11 @@ fun upd(dt0: Double) {
     }
     S.rn -= dt
     if (S.rn <= 0 && S.t > 45 && S.pg < 2 && S.bo?.dead != false) {
-        S.rn = 24.0
+        S.rn = Math.max(12.0, 24 - S.t / 45)
         var c = 0
-        for (i in 0 until 8) {
-            val an = i * .785
+        val wn = Math.min(12, 8 + Math.floor(S.t / 120).toInt())
+        for (i in 0 until wn) {
+            val an = i * TAU / wn
             val e = spawn("crawl", P.x + cos(an) * 290, P.y + sin(an) * 290)
             if (e != null) { c++; fxR(e.x, e.y, 26.0, "#e55", .4) }
         }
