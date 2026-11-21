@@ -854,8 +854,8 @@ private fun drawHud(g: G) {
     }
     g.fillStyle = "#10202a"; g.fillRect(12.0, 24.0, bw, 5.0); g.fillStyle = "#5fd8ff"; g.fillRect(12.0, 24.0, bw * (P.xp / P.nx).coerceIn(0.0, 1.0), 5.0)
     val hl1 = "HP " + Math.ceil(P.hp).toInt() + "/" + Math.round(P.mh) + "  Lv" + P.lv + (if (S.pg > 1) "  PAGE " + S.pg else "")
-    val hl2 = tt + "  처치 " + S.kills + "  금화 " + Math.floor(S.gd).toInt() + (if (tb("aa") > 0) "" else " · 수동조준")
-    g.fit(hl1, bw, 11.0, true); g.fillStyle = "#e8ecff"; g.fillText(scr(hl1), 12.0, 42.0)
+    val hl2 = tt + "  처치 " + S.kills + (if (tb("aa") > 0) "" else " · 수동조준")
+    g.fit(hl1, bw - 52, 11.0, true); g.fillStyle = "#e8ecff"; g.fillText(scr(hl1), 12.0, 42.0); drawGold(g, bw)
     g.fit(hl2, bw, 11.0); g.fillStyle = "#aab2e0"; g.fillText(scr(hl2), 12.0, 55.0); g.font(10.0, true)
     if (hm == 0) {
         val i1 = listOf(Triple("공격", "+" + pc(m.dm - 1), "#ffb347"), Triple("공속", "+" + pc(1 / m.iv - 1), "#ffd24a"), Triple("치명", pc(m.cr), "#f6f"))

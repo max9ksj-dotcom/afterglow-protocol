@@ -57,6 +57,9 @@ class Mon(val r: List<String>, val p: Map<Char, String>, val a: List<Int>)
 val MON = LinkedHashMap<String, Mon>()
 var dataGems: Map<String, List<String>> = emptyMap()
 val WSH = HashMap<String, List<String>>()
+/** 신전·상자·금화·가장자리 화살표 도트와 색 (웹판 WOS/WOP) */
+val WOS = HashMap<String, List<String>>()
+val WOP = HashMap<Char, String>()
 val WV = HashMap<String, Pair<String, Map<Char, String>>>()
 
 private fun strs(a: JSONArray?): List<String> = if (a == null) emptyList() else List(a.length()) { a.getString(it) }
@@ -140,6 +143,8 @@ fun loadData(ctx: Context) {
     j.optJSONObject("MON")?.let { o -> for (k in o.keys()) { val d = o.getJSONObject(k); val aa = d.getJSONArray("a"); val pm = HashMap<Char, String>(); val po = d.getJSONObject("p"); for (c in po.keys()) pm[c[0]] = po.getString(c); MON[k] = Mon(strs(d.getJSONArray("r")), pm, List(aa.length()) { aa.getInt(it) }) } }
     dataGems = rowsMap(j.getJSONObject("GEMS"))
     WSH.putAll(rowsMap(j.getJSONObject("WSH")))
+    j.optJSONObject("WOS")?.let { WOS.putAll(rowsMap(it)) }
+    j.optJSONObject("WOP")?.let { WOP.putAll(pal(it)) }
     j.getJSONObject("WV").let { o ->
         for (k in o.keys()) { val p = o.getJSONArray(k); WV[k] = Pair(p.getString(0), pal(p.getJSONObject(1))) }
     }

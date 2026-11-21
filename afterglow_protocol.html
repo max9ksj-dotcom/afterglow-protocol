@@ -116,8 +116,18 @@ const AGW={rld:['pulse','blade','rail','orbit','arc','frost','grav','mine'],dur:
 function stat(){const rx=relX();return{dm:1.15+.06*pl('over')+tb('dm')+chm('dm')+up('dm')+rx.dm+(S.db||0)+bv('dm'),iv:1/(1+.05*pl('acc')+tb('iv')+rx.iv+bv('iv')),ar:1+.07*pl('lens')+tb('ar')+chm('ar')+up('ar')+rx.ar,pc:pl('pierce'),cr:.05+.04*pl('prec')+tb('cr')+chm('cr')+up('cr')+bv('cr'),cd:1.5+tb('cd'),bd:1+tb('bd'),mv:1+.05*pl('mob')+tb('mv')+chm('mv')+up('mv')+rx.mv+(S.dv||0)+bv('mv'),am:Math.max(.3,1-.08*pl('arm')-tb('am')-chm('am')-(SV.st.g<3?.2:0)-(S.da||0)-rx.am-(P.hp<P.mh*.3?up('lh'):0))*(S.shd>0?.5:1)*dmgMul(),ch:pl('chain')}}
 let ZM=1;const ZMN=.6,ZMX=1.5;let SV={p:6,n:{}};try{const j=localStorage.getItem('ap_save2');if(j)SV=JSON.parse(j)}catch(e){}
 function sv(){try{localStorage.setItem('ap_save2',JSON.stringify(SV))}catch(e){}}
-const ICP={o:'#10152a',w:'#ffffff',r:'#ff5a5a',y:'#ffd24a',n:'#ff9a2a',b:'#4a9aff',g:'#4cdc6a',p:'#b45cff',c:'#5fd8ff',k:'#8a93c8'};
+const ICP={o:'#10152a',w:'#ffffff',r:'#ff5a5a',y:'#ffd24a',n:'#ff9a2a',b:'#4a9aff',g:'#4cdc6a',p:'#b45cff',c:'#5fd8ff',k:'#8a93c8',m:'#ff7ad8',d:'#8a5a2b'};
 const IC={
+// 능력치 책 9종: 왼쪽 책등 + 표지색 + 가운데 기호 + 아래 종이
+b_dm:['.oooooooo.','ororrrrrro','ororrrwwro','ororrwwrro','orowrwrrro','ororwrrrro','ororrrrrro','orowwwwwwo','orokkkkkko','.oooooooo.'],
+b_iv:['.oooooooo.','oyoyyyyyyo','oyoyyooyyo','oyoyooyyyo','oyoyoooyyo','oyoyoyyyyo','oyoyyyyyyo','oyowwwwwwo','oyokkkkkko','.oooooooo.'],
+b_mv:['.oooooooo.','ococccccco','ocoococcco','ococococco','ococococco','ocoococcco','ococccccco','ocowwwwwwo','ocokkkkkko','.oooooooo.'],
+b_hp:['.oooooooo.','omommmmmmo','omowwmwwmo','omowwwwwmo','omomwwwmmo','omommwmmmo','omommmmmmo','omowwwwwwo','omokkkkkko','.oooooooo.'],
+b_cr:['.oooooooo.','ononnnnnno','ononwwwnno','onownwnwno','onownwnwno','ononwwwnno','ononnnnnno','onowwwwwwo','onokkkkkko','.oooooooo.'],
+b_mg:['.oooooooo.','obobbbbbbo','obowbbbwbo','obowbbbwbo','obowbbbwbo','obobwwwbbo','obobbbbbbo','obowwwwwwo','obokkkkkko','.oooooooo.'],
+b_xp:['.oooooooo.','opoppppppo','opoppwpppo','opowwwwwpo','opopwwwppo','opopwpwppo','opoppppppo','opowwwwwwo','opokkkkkko','.oooooooo.'],
+b_lk:['.oooooooo.','ogoggggggo','ogowwgwwgo','ogowwgwwgo','ogoggwgggo','ogogwggggo','ogoggggggo','ogowwwwwwo','ogokkkkkko','.oooooooo.'],
+b_gd:['.oooooooo.','ododdddddo','ododyyyddo','odoyoooydo','odoyoooydo','ododyyyddo','ododdddddo','odowwwwwwo','odokkkkkko','.oooooooo.'],
 dm:['.......oo.','......owwo','.....owwo.','....owwo..','.o.owwo...','.owowo....','..owo.....','.nyo......','nyo.......','oo........'],
 iv:['....oyyo..','...oyyo...','..oyyo....','.oyyyyyo..','..oooyyo..','....oyyo..','...oyyo...','...oyo....','..oyo.....','..oo......'],
 ar:['...oooo...','..owwwwo..','.ow....wo.','ow..oo..wo','ow.owwo.wo','ow.owwo.wo','ow..oo..wo','.ow....wo.','..owwwwo..','...oooo...'],
@@ -821,8 +831,18 @@ function drawCaps(){if(!S.cp)return;for(const c of S.cp){if(c.l<5&&Math.floor(c.
 // 보급 상자: 금화를 내고 열면 선택지 3개 중 하나(책은 희귀 이상), 열 때마다 값 ×1.4 (처음 12)
 // 충전 신전: 둘레 안에 4초 서 있으면 충전(벗어나면 천천히 줄어듦) → 능력치 축복 3개 중 하나(등급 무작위), 사용 후 30초 뒤 새 신전
 // 능력치 책: 레벨업 선택지에 나오는 한 판용 강화, 3칸, 각 10레벨. 고를 때마다 등급(일반·희귀·영웅·전설)에 따라 상승량 ×1/1.5/2/3
-const BK={dm:['힘의 책','피해',.05,'dm'],iv:['속도의 책','공격 속도',.04,'iv'],mv:['질주의 책','이동 속도',.04,'mv'],hp:['생명의 책','최대 체력',8,'hp'],cr:['치명의 책','치명타 확률',.025,'cr'],mg:['자석의 책','수집 범위',.12,'mg'],xp:['지식의 책','경험치',.06,'xp'],lk:['행운의 책','높은 등급 확률',.15,'rr'],gd:['탐욕의 책','금화 획득',.15,'pg']},BKM=[1,1.5,2,3],BKX=10,BKS=3;
+const BK={dm:['힘의 책','피해',.05,'b_dm'],iv:['속도의 책','공격 속도',.04,'b_iv'],mv:['질주의 책','이동 속도',.04,'b_mv'],hp:['생명의 책','최대 체력',8,'b_hp'],cr:['치명의 책','치명타 확률',.025,'b_cr'],mg:['자석의 책','수집 범위',.12,'b_mg'],xp:['지식의 책','경험치',.06,'b_xp'],lk:['행운의 책','높은 등급 확률',.15,'b_lk'],gd:['탐욕의 책','금화 획득',.15,'b_gd']},BKM=[1,1.5,2,3],BKX=10,BKS=3;
 const SHV={dm:.08,iv:.06,mv:.06,hp:15,cr:.04,mg:.2,xp:.1,gd:.25},SHT=4,SHR=70,CHC=12,CHG=1.4;
+// 신전(sh)·닫힌 상자(ch)·열린 상자(cho)·금화(coin)·가장자리 화살표(arr, f색만 바꿔 씀)·작은 신전(shi)
+const WOP={'o':'#14102a','h':'#2c335c','H':'#5560a8','g':'#3a3f66','G':'#7c86c0','c':'#3f8fb0','C':'#5fd8ff','V':'#e0faff','D':'#5a3418','d':'#8a5a2b','l':'#c4701f','L':'#e8944a','y':'#ffd24a','Y':'#fff2b0','n':'#ff9a2a','f':'#5fd8ff'};
+const WOS={
+sh:['......oooo......','.....oCVVCo.....','....oCCVCCCo....','....oCCCCCco....','.....oCCCco.....','......occo......','.......oo.......','.....oooooo.....','....oGHHHHho....','....oHHhhhgo....','....oHhCChgo....','....oHhhChgo....','....oHhChhgo....','....oHhCChgo....','....oHhhhhgo....','....oHhCChgo....','....oHhhhhgo....','...ooHHHHHhoo...','..oGHHHHHHHHgo..','..oHhhhhhhhhgo..','.oGHHHHHHHHHHgo.','.ohhhhhhhhhhhgo.','..oooooooooooo..'],
+ch:['..oooooooooooo..','.oyLLLLLLLLLLyo.','.oylllllllllyyo.','.oydddddddddyyo.','.oooooooooooooo.','.oydddoYYodddyo.','.oydddoyyodddyo.','.oyddddoodddDyo.','.oyddddddddDDyo.','.oyDDDDDDDDDDyo.','.oooooooooooooo.'],
+cho:['..oooooooooooo..','.oyLLLLLLLLLLyo.','.oyDDDDDDDDDDyo.','.oooooooooooooo.','.oYyYYyYYyYYyYo.','.oyYYYYYYYYYYyo.','.oydddoyyodddyo.','.oyddddoodddDyo.','.oyddddddddDDyo.','.oyDDDDDDDDDDyo.','.oooooooooooooo.'],
+coin:['..ooo..','.oyyyo.','oyYyyyo','oyYyyno','oyyyyno','.oynno.','..ooo..'],
+arr:['oo.....','ofoo...','offfoo.','offfffo','offfoo.','ofoo...','oo.....'],
+shi:['..oo..','.oCVo.','.oCCo.','..oo..','.oHho.','.oHgo.','.oHgo.','oHHhgo','oooooo']};
+const WSC={};function wos(k,v){const id=k+(v||'');if(!WSC[id]){const p=Object.assign({},WOP,v=='d'?{C:'#3f8fb0',V:'#5fd8ff',c:'#2c335c'}:v=='b'?{c:'#e0faff',C:'#e0faff',V:'#ffffff'}:v=='y'?{f:'#ffd24a'}:{});WSC[id]=mkS(WOS[k],p)}return WSC[id]}
 const bv=k=>(S&&S.bkv&&S.bkv[k])||0,chCost=()=>Math.round(CHC*Math.pow(CHG,S.chn||0));
 function rar(mn){mn=mn||0;const L=bv('lk'),w=[50,30*(1+L),15*(1+1.5*L),5*(1+2*L)];let t=0;for(let i=mn;i<4;i++)t+=w[i];let x=Math.random()*t;for(let i=mn;i<4;i++){x-=w[i];if(x<=0)return i}return 3}
 function bkFmt(k,v){return BK[k][1]+' +'+(k=='hp'?Math.round(v):Math.round(v*1000)/10+(k=='cr'?'%p':'%'))}
@@ -834,25 +854,33 @@ function chestOpen(o){burst(o.x,o.y,30,'#ffd24a',300,.7,4);S.fx.push({t:'r',x:o.
  choose('보급 상자 — 하나를 고르세요',q,'#ffd24a')}
 function shrineUse(o){burst(o.x,o.y,36,'#5fd8ff',340,.8,4);S.fx.push({t:'r',x:o.x,y:o.y,r:140,c:'#5fd8ff',l:.5,m:.5});snd(740,.4,'sine',.08);
  const ks=Object.keys(SHV).sort(()=>Math.random()-.5).slice(0,3);
- choose('신전 충전 완료 — 축복 하나를 고르세요',ks.map(k=>{const r=rar(0),v=SHV[k]*BKM[r];return{a:'['+RG.n[r]+'] 신전의 축복: '+BK[k][1],b:bkFmt(k,v),ic:BK[k][3],tg:'신전',tc:RG.c[r],f:()=>bkAdd(k,v)}}),'#5fd8ff')}
+ choose('신전 충전 완료 — 축복 하나를 고르세요',ks.map(k=>{const r=rar(0),v=SHV[k]*BKM[r];return{a:'['+RG.n[r]+'] 신전의 축복: '+BK[k][1],b:bkFmt(k,v),ic:k=='gd'?'pg':k,tg:'신전',tc:RG.c[r],f:()=>bkAdd(k,v)}}),'#5fd8ff')}
 const woOn=()=>S&&S.run&&!S.rush&&!S.ended&&(S.pg<2||S.pg>=4);
 function woSpot(){const a=Math.random()*6.283,d=(650+Math.random()*450)/Math.min(1,ZM);return{x:P.x+Math.cos(a)*d,y:P.y+Math.sin(a)*d}}
 function woUpd(dt){if(!S.wo)S.wo=[];if(!woOn())return;S.wst=(S.wst||0)-dt;
- S.wo=S.wo.filter(o=>!o.g&&Math.hypot(o.x-P.x,o.y-P.y)<2400);
- const ns=S.wo.filter(o=>o.t=='s').length,nc=S.wo.length-ns;if(ns<2&&S.wst<=0)S.wo.push(Object.assign({t:'s',c:0},woSpot()));if(nc<2)S.wo.push(Object.assign({t:'c',nm:0},woSpot()));
- for(const o of S.wo){const d=Math.hypot(o.x-P.x,o.y-P.y);
-  if(o.t=='s'){if(d<SHR){o.c+=dt/SHT;if(Math.random()<.25)burst(o.x+(Math.random()-.5)*SHR,o.y+(Math.random()-.5)*SHR,1,'#5fd8ff',60,.5,2)}else o.c=Math.max(0,o.c-dt/(SHT*2));if(o.c>=1){o.g=1;S.wst=30;shrineUse(o);return}}
-  else{o.nm-=dt;if(d<30){const c=chCost();if((S.gd||0)>=c){S.gd-=c;S.chn=(S.chn||0)+1;o.g=1;chestOpen(o);return}if(o.nm<=0){o.nm=2;S.msg='금화 부족 ('+Math.floor(S.gd||0)+'/'+c+')';S.mt=1}}}}}
-function drawWo(){if(!S.wo)return;for(const o of S.wo){if(o.g)continue;const x=Math.round(o.x),y=Math.round(o.y);
- if(o.t=='s'){g.strokeStyle='rgba(95,216,255,.35)';g.lineWidth=2;g.beginPath();g.arc(x,y,SHR,0,6.283);g.stroke();if(o.c>0){g.strokeStyle='#5fd8ff';g.lineWidth=5;g.beginPath();g.arc(x,y,SHR,-1.571,-1.571+o.c*6.283);g.stroke()}
-  g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.2+.15*Math.sin(S.t*3)+.4*o.c;g.fillStyle='#5fd8ff';g.beginPath();g.arc(x,y-14,18,0,6.283);g.fill();g.restore();
-  g.fillStyle='rgba(0,0,0,.3)';g.fillRect(x-14,y+8,28,4);g.fillStyle='#2c335c';g.fillRect(x-12,y,24,8);g.fillStyle='#14102a';g.fillRect(x-6,y-30,12,30);g.fillStyle='#5560a8';g.fillRect(x-4,y-28,8,26);g.fillStyle=o.c>0?'#e0faff':'#5fd8ff';g.fillRect(x-2,y-22+Math.round(Math.sin(S.t*4)*2),4,8)}
- else{const c=chCost(),ok=(S.gd||0)>=c,b=Math.round(Math.sin(S.t*3+o.x)*1.5);g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.15+.1*Math.sin(S.t*5);g.fillStyle='#ffd24a';g.beginPath();g.arc(x,y,20,0,6.283);g.fill();g.restore();
-  g.fillStyle='rgba(0,0,0,.3)';g.fillRect(x-12,y+9,24,4);g.fillStyle='#14102a';g.fillRect(x-12,y-10+b,24,20);g.fillStyle='#8a5a2b';g.fillRect(x-10,y-2+b,20,10);g.fillStyle='#c4701f';g.fillRect(x-10,y-8+b,20,5);g.fillStyle='#ffd24a';g.fillRect(x-2,y-4+b,4,5);g.fillRect(x-10,y-3+b,20,1);
-  g.font='bold 11px sans-serif';g.textAlign='center';g.fillStyle=ok?'#ffd24a':'#ff8a8a';g.fillText('금화 '+c,x,y-16+b);g.textAlign='left'}}}
+ for(const o of S.wo)if(o.g)o.ot-=dt;S.wo=S.wo.filter(o=>(!o.g||o.ot>0)&&Math.hypot(o.x-P.x,o.y-P.y)<2400);
+ const ns=S.wo.filter(o=>o.t=='s'&&!o.g).length,nc=S.wo.filter(o=>o.t=='c'&&!o.g).length;if(ns<2&&S.wst<=0)S.wo.push(Object.assign({t:'s',c:0},woSpot()));if(nc<2)S.wo.push(Object.assign({t:'c',nm:0},woSpot()));
+ for(const o of S.wo){if(o.g)continue;const d=Math.hypot(o.x-P.x,o.y-P.y);
+  if(o.t=='s'){if(d<SHR){o.c+=dt/SHT;if(Math.random()<.25)burst(o.x+(Math.random()-.5)*SHR,o.y+(Math.random()-.5)*SHR,1,'#5fd8ff',60,.5,2)}else o.c=Math.max(0,o.c-dt/(SHT*2));if(o.c>=1){o.g=1;o.ot=.6;S.wst=30;shrineUse(o);return}}
+  else{o.nm-=dt;if(d<30){const c=chCost();if((S.gd||0)>=c){S.gd-=c;S.chn=(S.chn||0)+1;o.g=1;o.ot=.8;chestOpen(o);return}if(o.nm<=0){o.nm=2;S.msg='금화 부족 ('+Math.floor(S.gd||0)+'/'+c+')';S.mt=1}}}}}
+function drawWo(){if(!S.wo)return;for(const o of S.wo){const x=Math.round(o.x),y=Math.round(o.y),al=o.g?Math.max(0,o.ot/(o.t=='s'?.6:.8)):1;g.globalAlpha=al;
+ g.fillStyle='rgba(0,0,0,.35)';g.fillRect(x-14,y+8,28,4);g.fillRect(x-10,y+12,20,2);
+ if(o.t=='s'){const n=24,on=Math.floor(o.c*n);if(!o.g)for(let i=0;i<n;i++){const a=-1.571+i/n*6.283;g.fillStyle=i<on?'#5fd8ff':'rgba(95,216,255,.22)';g.fillRect(Math.round(x+Math.cos(a)*SHR)-2,Math.round(y+Math.sin(a)*SHR)-2,4,4)}
+  const v=o.g?'d':o.c<=0?'d':o.c>.75&&Math.floor(S.t*10)%2?'b':'',sp=wos('sh',v),bb=Math.round(Math.sin(S.t*2.5)*2);
+  if(o.c>0&&!o.g){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.15+.45*o.c;g.fillStyle='#5fd8ff';g.beginPath();g.arc(x,y-34+bb,10+10*o.c,0,6.283);g.fill();g.restore();g.globalAlpha=al}
+  g.drawImage(sp,0,7,16,16,x-16,y-24,32,32);g.drawImage(sp,0,0,16,7,x-16,y-40+bb,32,14)}
+ else{const op=o.g,sp=wos(op?'cho':'ch'),b=op?0:Math.round(Math.sin(S.t*3+o.x)*1);
+  if(op){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.5*al;g.fillStyle='#ffd24a';g.beginPath();g.arc(x,y-6,22,0,6.283);g.fill();g.restore();g.globalAlpha=al}
+  g.drawImage(sp,x-16,y-12+b,32,22);
+  if(!op){const c=chCost(),ok=(S.gd||0)>=c,t=''+c;g.font='bold 11px sans-serif';const w=14+3+(g.measureText(t).width||0),lx=Math.round(x-w/2);g.drawImage(wos('coin'),lx,y-30,14,14);g.lineWidth=3;g.strokeStyle='#14102a';g.strokeText(t,lx+17,y-19);g.fillStyle=ok?'#ffd24a':'#ff8a8a';g.fillText(t,lx+17,y-19)}}}
+ g.globalAlpha=1}
+// 화면 밖 신전(하늘색)·상자(금색) 방향: 가장자리에 도트 화살표 + 작은 그림
 function drawWoEdge(cm){if(!S.wo||!woOn())return;for(const o of S.wo){if(o.g)continue;const sx=W/2+ZM*(o.x-cm[0]),sy=H/2+ZM*(o.y-cm[1]);if(sx>0&&sx<W&&sy>0&&sy<H)continue;
- const a=Math.atan2(sy-H/2,sx-W/2),m=22,k=Math.min((W/2-m)/Math.max(.001,Math.abs(Math.cos(a))),(H/2-m)/Math.max(.001,Math.abs(Math.sin(a)))),x=W/2+Math.cos(a)*k,y=H/2+Math.sin(a)*k;
- g.save();g.translate(x,y);g.rotate(a);g.globalAlpha=.75;g.fillStyle=o.t=='s'?'#5fd8ff':'#ffd24a';g.beginPath();g.moveTo(9,0);g.lineTo(-6,-6);g.lineTo(-6,6);g.closePath();g.fill();g.restore()}}
+ const a=Math.atan2(sy-H/2,sx-W/2),m=20,k=Math.min((W/2-m)/Math.max(.001,Math.abs(Math.cos(a))),(H/2-m)/Math.max(.001,Math.abs(Math.sin(a)))),x=W/2+Math.cos(a)*k,y=H/2+Math.sin(a)*k,s=o.t=='s',ic=wos(s?'shi':'coin');
+ g.save();g.globalAlpha=.85;g.translate(Math.round(x),Math.round(y));g.rotate(a);g.drawImage(wos('arr',s?'':'y'),-3,-7,14,14);g.restore();
+ g.globalAlpha=.85;g.drawImage(ic,Math.round(x-Math.cos(a)*18-ic.width),Math.round(y-Math.sin(a)*18-ic.height),ic.width*2,ic.height*2);g.globalAlpha=1}}
+// 금화: HUD 첫 줄 오른쪽에 금화 그림 + 숫자 (신전·상자가 있는 곳에서만)
+function drawGold(bw){if(S.rush||(S.pg>=2&&S.pg<4))return;const t=''+Math.floor(S.gd||0);g.font='bold 11px sans-serif';const w=g.measureText(t).width||0,x=Math.round(12+bw-w);g.drawImage(wos('coin'),x-14,33,10,10);g.fillStyle='#ffd24a';g.fillText(t,x,42)}
 // 메인 메뉴 뒤 배경: 천천히 흐르는 회로 격자 + 떠오르는 잔광 입자
 function menuBG(){const t=performance.now()/1000,gs=48,ox=(t*8)%gs,oy=(t*5)%gs;g.fillStyle='#1a1f3a';for(let x=-ox;x<W;x+=gs)g.fillRect(Math.round(x),0,1,H);for(let y=-oy;y<H;y+=gs)g.fillRect(0,Math.round(y),W,1);
  for(let i=0;i<70;i++){const sp=12+hs(i,2)%30,x=(hs(i,1)%W+Math.sin(t*.6+i)*18+W)%W,y=H-((hs(i,3)%H+t*sp)%(H+40))+20,z=1+hs(i,4)%3,a=.25+.45*Math.abs(Math.sin(t*1.3+i));g.globalAlpha=a;g.fillStyle=i%3?'#ffb347':'#5fd8ff';g.fillRect(Math.round(x),Math.round(y),z*2,z*2)}g.globalAlpha=1;
@@ -920,7 +948,7 @@ function draw(){
  topLay();g.fillStyle='rgba(8,10,24,.55)';g.fillRect(6,6,bw+12,hm==1?112:hm==0?66:50);
  g.fillStyle='#2a1018';g.fillRect(12,12,bw,9);{const hr=Math.max(0,Math.min(1,P.hp/P.mh));P.hpT=P.hpT==null||P.hpT<hr?hr:Math.max(hr,P.hpT-.6*(1/60));g.fillStyle='#ffe0a0';g.fillRect(12,12,bw*P.hpT,9);g.fillStyle=hr<.3&&Math.floor(S.t*4)%2?'#ff8a8a':'#f55';g.fillRect(12,12,bw*hr,9)}
  g.fillStyle='#10202a';g.fillRect(12,24,bw,5);g.fillStyle='#5fd8ff';g.fillRect(12,24,bw*Math.max(0,Math.min(1,P.xp/P.nx)),5);
- const hl1='HP '+Math.ceil(P.hp)+'/'+P.mh+'  Lv'+P.lv+(S.pg>1?'  PAGE '+S.pg:''),hl2=tt+'  처치 '+S.kills+'  금화 '+Math.floor(S.gd||0)+(tb('aa')>0?'':' · 수동조준');fitF(hl1,bw,11,1);g.fillStyle='#e8ecff';g.fillText(scr(hl1),12,42);fitF(hl2,bw,11);g.fillStyle='#aab2e0';g.fillText(scr(hl2),12,55);g.font='bold 10px sans-serif';
+ const hl1='HP '+Math.ceil(P.hp)+'/'+P.mh+'  Lv'+P.lv+(S.pg>1?'  PAGE '+S.pg:''),hl2=tt+'  처치 '+S.kills+(tb('aa')>0?'':' · 수동조준');fitF(hl1,bw-52,11,1);g.fillStyle='#e8ecff';g.fillText(scr(hl1),12,42);drawGold(bw);fitF(hl2,bw,11);g.fillStyle='#aab2e0';g.fillText(scr(hl2),12,55);g.font='bold 10px sans-serif';
  if(hm==0)i1.forEach(([a,b,c],i)=>{const x=12+i*bw/3;g.fillStyle='#8a92b8';g.fillText(a,x,67);g.fillStyle=c;g.fillText(b,x+22,67)});
  else if(hm==1)i2.forEach(([a,b,c],i)=>{const x=12+(i&1)*bw/2,y=68+(i>>1)*14;g.fillStyle='#8a92b8';g.fillText(a,x,y);g.fillStyle=c;g.fillText(b,x+30,y)});
  const ks=Object.keys(S.ws),cw=40,x0=Math.round(W/2-ks.length*cw/2),y0=H-38;
