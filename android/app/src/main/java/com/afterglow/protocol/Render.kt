@@ -585,7 +585,7 @@ fun draw(g: G) {
         for (q in S.gm) { val s = GS[q.k] ?: GS["crawl"]!!; g.fillStyle = s.gl; g.globalAlpha = .2 + .1 * sin(S.t * 5 + q.x); g.circleFill(rd(q.x), rd(q.y), s.gr) }
         g.lighter = false; g.globalAlpha = 1.0
     }
-    drawCaps(g)
+    drawCaps(g); drawWo(g)
     for (q in S.gm) {
         val s = GS[q.k] ?: GS["crawl"]!!; val w = s.n.w * s.sc; val h = s.n.h * s.sc; val b = rd(sin(S.t * 4 + q.x * .1) * 2)
         g.drawImage(s.n, rd(q.x - w / 2), rd(q.y - h / 2 + b), w, h)
@@ -830,7 +830,7 @@ fun draw(g: G) {
     g.restore()
     if (S.mt > 0) { g.fit(S.msg, W - 16 - SAL - SAR, 26.0, true, 13.0); g.fillStyle = "#f55"; g.textAlign = "center"; g.fillText(S.msg, W / 2 - SAL, if (CL) Math.max(PY + PH + 28 + (if (S.cb >= 3) 20 else 0), if (S.rl.values.any { it > 0 }) PY + PH + 56 else 0.0) else 80.0); g.textAlign = "left" }
     g.restore()
-    drawSticks(g); drawZoom(g)
+    drawSticks(g); drawZoom(g); drawWoEdge(g, cm)
     mk(7)
     if (S.sw > 0) {
         g.fillStyle = "rgba(60,255,255,.09)"; g.fillRect(0.0, 0.0, W, H); g.font(16.0, true); g.textAlign = "center"; g.fillStyle = "#99ffff"; g.fillText("입력 반전", W / 2, H * .3); g.textAlign = "left"
@@ -854,7 +854,7 @@ private fun drawHud(g: G) {
     }
     g.fillStyle = "#10202a"; g.fillRect(12.0, 24.0, bw, 5.0); g.fillStyle = "#5fd8ff"; g.fillRect(12.0, 24.0, bw * (P.xp / P.nx).coerceIn(0.0, 1.0), 5.0)
     val hl1 = "HP " + Math.ceil(P.hp).toInt() + "/" + Math.round(P.mh) + "  Lv" + P.lv + (if (S.pg > 1) "  PAGE " + S.pg else "")
-    val hl2 = tt + "  처치 " + S.kills + (if (tb("aa") > 0) "" else " · 수동조준")
+    val hl2 = tt + "  처치 " + S.kills + "  금화 " + Math.floor(S.gd).toInt() + (if (tb("aa") > 0) "" else " · 수동조준")
     g.fit(hl1, bw, 11.0, true); g.fillStyle = "#e8ecff"; g.fillText(scr(hl1), 12.0, 42.0)
     g.fit(hl2, bw, 11.0); g.fillStyle = "#aab2e0"; g.fillText(scr(hl2), 12.0, 55.0); g.font(10.0, true)
     if (hm == 0) {
