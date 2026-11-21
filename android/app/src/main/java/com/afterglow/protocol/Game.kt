@@ -78,6 +78,7 @@ class St(val w0: String, @JvmField var T: Double) {
     var hf = 1.0; var xo = 0.0; var lastSwap: Double? = null; var rivalId: String? = null; var rcs: Spr? = null; var t3 = false
     var cur: List<Opt> = emptyList(); var bonus = false
     var oc = 0; var fl = 0; var mut: Mut? = null; var mk2 = 0.0; var db = 0.0; var da = 0.0; var dv = 0.0; var tt = 0.0; var cr0 = 0; var rush = false
+    val wo = ArrayList<Wo>(); var gd = 0.0; var chn = 0; var wst = 0.0; val bks = LinkedHashMap<String, Int>(); val bkv = HashMap<String, Double>()
     val na = ArrayList<String>()
 }
 
@@ -106,9 +107,9 @@ fun relX(): RelX {
 }
 fun stat(): Stat {
     val rx = relX()
-    return Stat(1.15 + .06 * pl("over") + tb("dm") + chm("dm") + up("dm") + rx.dm + S.db, 1 / (1 + .05 * pl("acc") + tb("iv") + rx.iv),
-        1 + .07 * pl("lens") + tb("ar") + chm("ar") + up("ar") + rx.ar, pl("pierce"), .05 + .04 * pl("prec") + tb("cr") + chm("cr") + up("cr"),
-        1.5 + tb("cd"), 1 + tb("bd"), 1 + .05 * pl("mob") + tb("mv") + chm("mv") + up("mv") + rx.mv + S.dv,
+    return Stat(1.15 + .06 * pl("over") + tb("dm") + chm("dm") + up("dm") + rx.dm + S.db + bv("dm"), 1 / (1 + .05 * pl("acc") + tb("iv") + rx.iv + bv("iv")),
+        1 + .07 * pl("lens") + tb("ar") + chm("ar") + up("ar") + rx.ar, pl("pierce"), .05 + .04 * pl("prec") + tb("cr") + chm("cr") + up("cr") + bv("cr"),
+        1.5 + tb("cd"), 1 + tb("bd"), 1 + .05 * pl("mob") + tb("mv") + chm("mv") + up("mv") + rx.mv + S.dv + bv("mv"),
         Math.max(.3, 1 - .08 * pl("arm") - tb("am") - chm("am") - (if (SV.stG < 3) .2 else 0.0) - S.da - rx.am - (if (P.hp < P.mh * .3) up("lh") else 0.0)) * (if (S.shd > 0) .5 else 1.0) * dmgMul(),
         pl("chain"))
 }
@@ -152,7 +153,7 @@ fun bugName(e: En, txt: String) {
     S.fx.add(Fx('m', 1.2, 1.2).also { it.x = e.x; it.y = e.y - e.r - 30; it.txt = txt })
     S.bt = Math.max(S.bt, .18)
 }
-fun gainXP(v: Double) { P.xp += v * (if (S.mut?.id == "drain") 2 else 1) * (1 + tb("xp") + up("xp")) * (1 + Math.min(.5 + .5 * rlc("combo"), S.cb * .02)) }
+fun gainXP(v: Double) { P.xp += v * (if (S.mut?.id == "drain") 2 else 1) * (1 + tb("xp") + up("xp") + bv("xp")) * (1 + Math.min(.5 + .5 * rlc("combo"), S.cb * .02)) }
 
 // ===== 합체 무기 부가 효과 =====
 val RI = mapOf("cleave" to "#ffd0a0", "ricochet" to "#f6f", "pull" to "#a8f", "shards" to "#8f8", "chain" to "#ff6", "mark" to "#9ef", "blast" to "#f86")
@@ -335,6 +336,7 @@ fun hit(e: En, d0: Double, c0: String? = null) {
             if (e.el) { for (i in 0 until 6) spawn("mini", e.x + cos(i * 1.047) * 24, e.y + sin(i * 1.047) * 24); for (i in 0 until 12) hb(e.x, e.y, i * .5236, 130.0, 8.0, 0.0, null) }
             else { spawn("mini", e.x - 8, e.y); spawn("mini", e.x + 8, e.y) }
         }
+        S.gd += (if (e.boss) 50 else if (e.el) 15 else 1) * (1 + bv("gd"))
         S.gm.add(Gem(e.x, e.y, if (e.boss) 60.0 else e.xp, e.k))
         if (!e.boss && e.k != "mini" && (e.el || rnd() < CPC)) capDrop(e.x, e.y)
         burst(e.x, e.y, if (e.boss) 70.0 else 16.0, e.col, 320.0, .6, 4.0); burst(e.x, e.y, 6.0, "#fff", 260.0, .3, 3.0); fxR(e.x, e.y, e.r * 2.4, e.col, .3)
@@ -970,7 +972,7 @@ fun upd(dt0: Double) {
     S.mn.removeAll { it.x_ }
     val far = hyp(W, H) * 1.2 / Math.min(1.0, ZM)
     S.en.removeAll { it.dead || hyp(it.x - P.x, it.y - P.y) >= far }
-    val RMG = 1 + tb("mg") + up("mg") + relX().mg
+    val RMG = 1 + tb("mg") + up("mg") + relX().mg + bv("mg")
     S.gm.each { gm ->
         gm.a += dt
         val dx = P.x - gm.x; val dy = P.y - gm.y; val d = Math.max(.001, hyp(dx, dy)); val R = 110 * RMG
@@ -988,7 +990,7 @@ fun upd(dt0: Double) {
         gainXP(v)
     }
     S.gm.removeAll { it.g }
-    capUpd(dt)
+    capUpd(dt); woUpd(dt)
     if (P.xp >= P.nx && S.run) {
         P.xp -= P.nx; P.lv++; P.nx = 6.0 + P.lv * 4; P.hp = Math.min(P.mh, P.hp + P.mh * up("lu")); lvup()
     }
@@ -1147,7 +1149,7 @@ private fun enemyStep(e: En, dt: Double, m: Stat) {
 }
 
 // ===== 레벨업 선택지 =====
-fun opts(): ArrayList<Opt> {
+fun opts(mn: Int = 0): ArrayList<Opt> {
     val o = ArrayList<Opt>()
     for ((k, w) in S.ws) { val D = WD[k]!!; if (w.l < 5) o.add(Opt(D.n + " Lv" + w.l + " → " + (w.l + 1), "피해 +20%", wk = k, tg = "무기 강화", tc = D.c, lv = w.l, mx = 5) { w.l++ }) }
     val need = Math.max(3.0, 5 - chm("fl") - rlc("cata"))
@@ -1171,6 +1173,7 @@ fun opts(): ArrayList<Opt> {
         val ag = AGW.containsKey(k)
         o.add(Opt(D.n + " Lv" + l + " → " + (l + 1), D.t, ic = PDI[k] ?: "dm", tg = if (ag) "증강" else "능력", tc = if (ag) "#c77dff" else "#5fd8ff", lv = l, mx = D.mx) { S.ps[k] = l + 1 })
     }
+    o.addAll(bkOpts(mn))
     return o
 }
 
@@ -1252,7 +1255,7 @@ fun glUpd(dt: Double) {
     if (!S.gs && t > 3.4) { S.gs = true; snd(60.0, .6, "sawtooth", .12) }
     if (t > 5.6) nextPage()
 }
-fun clearField() { S.cp.clear(); S.en.clear(); S.pr.clear(); S.ep.clear(); S.mn.clear(); S.fx.clear(); S.pt.clear(); S.q.clear(); S.gm.clear(); S.os.clear() }
+fun clearField() { S.cp.clear(); S.wo.clear(); S.en.clear(); S.pr.clear(); S.ep.clear(); S.mn.clear(); S.fx.clear(); S.pt.clear(); S.q.clear(); S.gm.clear(); S.os.clear() }
 fun nextPage() {
     S.pg = 2; spLab(); bgmSet("boss"); S.t = 0.0; S.T = 180.0; S.boss = true; S.bg = false; S.dc = 0.0; S.cin = 0.0; S.cl = false
     clearField()

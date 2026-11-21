@@ -300,6 +300,11 @@ private fun optCard(x: Opt, i: Int): View {
     row.animate().alpha(1f).translationY(0f).setStartDelay(60L * i).setDuration(220L).start()
     return row
 }
+/** 보급 상자·신전 보상 고르기 화면 (레벨업 카드와 같은 모양, 고르면 pick으로 처리) */
+fun choose(h: String, o: List<Opt>, c: String) {
+    S.run = false; S.cur = o
+    page("lvup", {}) { h2(h, c); o.forEachIndexed { i, x -> btnRow(optCard(x, i)) } }
+}
 fun pick(i: Int) {
     if (i !in S.cur.indices) return
     S.cur[i].f()

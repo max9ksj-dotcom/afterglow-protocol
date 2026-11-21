@@ -49,14 +49,17 @@ var HBP: Map<Char, String> = emptyMap()
 var dataTop: List<String> = emptyList()
 var dataLg: List<List<String>> = emptyList()
 var dataSpr: Map<String, List<String>> = emptyMap()
-/** 엘리트 5종: 이름, 도트(왼쪽 절반), 색 3가지, 다리 흔들림 인자 */
-class Eld(val n: String, val r: List<String>, val p: List<String>, val a: List<Int>)
+/** 엘리트: 이름, 도트(왼쪽 절반), 대표 색 3가지, 다리 흔들림 인자, 전용 색(q, 있으면 이것으로 그림) */
+class Eld(val n: String, val r: List<String>, val p: List<String>, val a: List<Int>, val q: Map<Char, String>? = null)
 val ELD = LinkedHashMap<String, Eld>()
 /** 기본 몬스터 새 도트(웹판 MON): 왼쪽 절반 줄, 전용 색, 걷는 모습 frB 인자 */
 class Mon(val r: List<String>, val p: Map<Char, String>, val a: List<Int>)
 val MON = LinkedHashMap<String, Mon>()
 var dataGems: Map<String, List<String>> = emptyMap()
 val WSH = HashMap<String, List<String>>()
+/** 신전·상자·금화·가장자리 화살표 도트와 색 (웹판 WOS/WOP) */
+val WOS = HashMap<String, List<String>>()
+val WOP = HashMap<Char, String>()
 val WV = HashMap<String, Pair<String, Map<Char, String>>>()
 
 private fun strs(a: JSONArray?): List<String> = if (a == null) emptyList() else List(a.length()) { a.getString(it) }
@@ -136,10 +139,12 @@ fun loadData(ctx: Context) {
     dataTop = strs(j.getJSONArray("TOP"))
     j.getJSONArray("LG").let { a -> dataLg = List(a.length()) { strs(a.getJSONArray(it)) } }
     dataSpr = rowsMap(j.getJSONObject("SPR"))
-    j.optJSONObject("ELD")?.let { o -> for (k in o.keys()) { val d = o.getJSONObject(k); val aa = d.optJSONArray("a"); ELD[k] = Eld(d.getString("n"), d.optJSONArray("r")?.let { strs(it) } ?: emptyList(), strs(d.getJSONArray("p")), if (aa == null) emptyList() else List(aa.length()) { aa.getInt(it) }) } }
+    j.optJSONObject("ELD")?.let { o -> for (k in o.keys()) { val d = o.getJSONObject(k); val aa = d.optJSONArray("a"); ELD[k] = Eld(d.getString("n"), d.optJSONArray("r")?.let { strs(it) } ?: emptyList(), strs(d.getJSONArray("p")), if (aa == null) emptyList() else List(aa.length()) { aa.getInt(it) }, d.optJSONObject("q")?.let { pal(it) }) } }
     j.optJSONObject("MON")?.let { o -> for (k in o.keys()) { val d = o.getJSONObject(k); val aa = d.getJSONArray("a"); val pm = HashMap<Char, String>(); val po = d.getJSONObject("p"); for (c in po.keys()) pm[c[0]] = po.getString(c); MON[k] = Mon(strs(d.getJSONArray("r")), pm, List(aa.length()) { aa.getInt(it) }) } }
     dataGems = rowsMap(j.getJSONObject("GEMS"))
     WSH.putAll(rowsMap(j.getJSONObject("WSH")))
+    j.optJSONObject("WOS")?.let { WOS.putAll(rowsMap(it)) }
+    j.optJSONObject("WOP")?.let { WOP.putAll(pal(it)) }
     j.getJSONObject("WV").let { o ->
         for (k in o.keys()) { val p = o.getJSONArray(k); WV[k] = Pair(p.getString(0), pal(p.getJSONObject(1))) }
     }
