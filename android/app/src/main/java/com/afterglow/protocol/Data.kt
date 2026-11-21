@@ -193,6 +193,7 @@ fun svLoad(ctx: Context) {
             s.ch = o.optString("ch", "kai").let { if (s.u.contains(it)) it else "kai" }
             s.vol = o.optInt("vol", 2).coerceIn(0, 2)
             s.hud = o.optInt("hud", 0).coerceIn(0, 2)
+            ZM = o.optDouble("zm", 1.0).let { if (it.isNaN()) 1.0 else it.coerceIn(ZMN, ZMX) }
             o.optJSONObject("up")?.let { for (u in UPS) { val l = it.optInt(u.id, 0).coerceIn(0, u.max); if (l > 0) s.up[u.id] = l } }
             o.optJSONObject("rd")?.let { for (k in it.keys()) if (RM.containsKey(k)) s.rd.add(k) }
             o.optJSONObject("rk")?.let { for (r in REL) if (r.pm) { val v = it.optInt(r.id, 0).coerceIn(0, r.mx); if (v > 0) s.rk[r.id] = v } }
@@ -218,7 +219,7 @@ fun sv() {
         o.put("n", JSONObject().also { j -> SV.n.forEach { j.put(it, 1) } })
         o.put("u", JSONObject().also { j -> SV.u.forEach { j.put(it, 1) } })
         o.put("st", JSONObject().put("w", SV.stW).put("mk", SV.stMk).put("b", SV.stB).put("f", SV.stF).put("g", SV.stG))
-        o.put("ch", SV.ch); o.put("vol", SV.vol); o.put("hud", SV.hud)
+        o.put("ch", SV.ch); o.put("vol", SV.vol); o.put("hud", SV.hud); o.put("zm", ZM)
         o.put("up", JSONObject().also { j -> SV.up.forEach { (k, v) -> j.put(k, v) } })
         o.put("upc", SV.upc)
         o.put("rd", JSONObject().also { j -> SV.rd.forEach { j.put(it, 1) } })

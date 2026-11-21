@@ -16,3 +16,14 @@ android/app/build/
 android/local.properties
 *.jks
 *.keystore
+# 유니티판: 자동 생성 폴더는 올리지 않는다
+unity/Library/
+unity/Temp/
+unity/Logs/
+unity/Obj/
+unity/Build/
+unity/UserSettings/
+unity/*.csproj
+unity/*.sln
+unity/*.slnx
+unity-create.log
