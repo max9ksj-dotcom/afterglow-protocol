@@ -98,27 +98,37 @@ fun woUpd(dt: Double) {
 fun drawWo(g: G) {
     for (o in S.wo) {
         val x = Math.round(o.x).toDouble(); val y = Math.round(o.y).toDouble(); val al = if (o.g) Math.max(0.0, o.ot / (if (o.t == 's') .6 else .8)) else 1.0
+        val s = o.t == 's'; val col = if (s) "#5fd8ff" else "#ffd24a"; val pu = .5 + .5 * sin(S.t * 3 + o.x)
         g.globalAlpha = al
-        g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(x - 14, y + 8, 28.0, 4.0); g.fillRect(x - 10, y + 12, 20.0, 2.0)
-        if (o.t == 's') {
+        // 멀리서도 보이게: 바닥 빛 + 위로 솟는 빛기둥 (1.5배 크기 그림)
+        if (!o.g) {
+            g.lighter = true; g.fillStyle = col
+            g.globalAlpha = .18 + .12 * pu; g.fillRect(x - 5, y - 170, 10.0, 150.0)
+            g.globalAlpha = .1 + .08 * pu; g.fillRect(x - 10, y - 150, 20.0, 130.0)
+            g.globalAlpha = .25 + .15 * pu; g.circleFill(x, y + 4, 30.0)
+            g.lighter = false
+            g.strokeStyle = col; g.lineWidth = 2.0; g.globalAlpha = al * (.45 + .35 * pu); g.circleStroke(x, y + 4, 34 + 4 * pu); g.globalAlpha = al
+        }
+        g.fillStyle = "rgba(0,0,0,.4)"; g.fillRect(x - 20, y + 10, 40.0, 6.0); g.fillRect(x - 14, y + 16, 28.0, 3.0)
+        if (s) {
             val n = 24; val on = Math.floor(o.c * n).toInt()
             if (!o.g) for (i in 0 until n) {
                 val a = -1.571 + i.toDouble() / n * TAU
-                g.fillStyle = if (i < on) "#5fd8ff" else "rgba(95,216,255,.22)"; g.fillRect(Math.round(x + cos(a) * SHR) - 2.0, Math.round(y + sin(a) * SHR) - 2.0, 4.0, 4.0)
+                g.fillStyle = if (i < on) "#5fd8ff" else "rgba(95,216,255,.3)"; g.fillRect(Math.round(x + cos(a) * SHR) - 3.0, Math.round(y + sin(a) * SHR) - 3.0, 6.0, 6.0)
             }
-            val v = if (o.g || o.c <= 0) "d" else if (o.c > .75 && Math.floor(S.t * 10).toInt() % 2 == 1) "b" else ""
-            val sp = wos("sh", v); val bb = Math.round(sin(S.t * 2.5) * 2).toDouble()
-            if (o.c > 0 && !o.g) { g.lighter = true; g.globalAlpha = .15 + .45 * o.c; g.fillStyle = "#5fd8ff"; g.circleFill(x, y - 34 + bb, 10 + 10 * o.c); g.lighter = false; g.globalAlpha = al }
-            g.drawImage(sp, 0.0, 7.0, 16.0, 16.0, x - 16, y - 24, 32.0, 32.0); g.drawImage(sp, 0.0, 0.0, 16.0, 7.0, x - 16, y - 40 + bb, 32.0, 14.0)
+            val v = if (o.g) "d" else if (o.c > .75 && Math.floor(S.t * 10).toInt() % 2 == 1) "b" else ""
+            val sp = wos("sh", v); val bb = Math.round(sin(S.t * 2.5) * 3).toDouble()
+            if (!o.g) { g.lighter = true; g.globalAlpha = .25 + .45 * o.c; g.fillStyle = "#5fd8ff"; g.circleFill(x, y - 50 + bb, 14 + 14 * o.c); g.lighter = false; g.globalAlpha = al }
+            g.drawImage(sp, 0.0, 7.0, 16.0, 16.0, x - 24, y - 36, 48.0, 48.0); g.drawImage(sp, 0.0, 0.0, 16.0, 7.0, x - 24, y - 60 + bb, 48.0, 21.0)
         } else {
-            val op = o.g; val sp = wos(if (op) "cho" else "ch"); val b = if (op) 0.0 else Math.round(sin(S.t * 3 + o.x)).toDouble()
-            if (op) { g.lighter = true; g.globalAlpha = .5 * al; g.fillStyle = "#ffd24a"; g.circleFill(x, y - 6, 22.0); g.lighter = false; g.globalAlpha = al }
-            g.drawImage(sp, x - 16, y - 12 + b, 32.0, 22.0)
+            val op = o.g; val sp = wos(if (op) "cho" else "ch"); val b = if (op) 0.0 else Math.round(sin(S.t * 3 + o.x) * 1.5).toDouble()
+            if (op) { g.lighter = true; g.globalAlpha = .5 * al; g.fillStyle = "#ffd24a"; g.circleFill(x, y - 8, 34.0); g.lighter = false; g.globalAlpha = al }
+            g.drawImage(sp, x - 24, y - 20 + b, 48.0, 33.0)
             if (!op) {
                 val c = chCost(); val ok = S.gd >= c; val t = "" + c
-                g.font(11.0, true); val w = 14 + 3 + g.measure(t); val lx = Math.round(x - w / 2).toDouble()
-                g.drawImage(wos("coin"), lx, y - 30, 14.0, 14.0)
-                g.lineWidth = 3.0; g.strokeStyle = "#14102a"; g.strokeText(t, lx + 17, y - 19); g.fillStyle = if (ok) "#ffd24a" else "#ff8a8a"; g.fillText(t, lx + 17, y - 19)
+                g.font(14.0, true); val w = 16 + 4 + g.measure(t); val lx = Math.round(x - w / 2).toDouble()
+                g.drawImage(wos("coin"), lx, y - 44, 16.0, 16.0)
+                g.lineWidth = 4.0; g.strokeStyle = "#14102a"; g.strokeText(t, lx + 20, y - 31); g.fillStyle = if (ok) "#ffd24a" else "#ff8a8a"; g.fillText(t, lx + 20, y - 31)
             }
         }
     }

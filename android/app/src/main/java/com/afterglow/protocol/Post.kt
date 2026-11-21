@@ -119,7 +119,7 @@ fun rushStart(w: String) {
     S.ws[w]!!.l = 5
     for (k in ks) S.ws[k] = Wp(5, .2)
     for (k in PD.keys.shuffled().take(3)) S.ps[k] = Math.min(3, PD[k]!!.mx)
-    P.lv = 25; P.nx = 106.0; S.t = 530.0; S.T = 900.0; S.elt = 999.0; S.msg = "곧 수호자가 나타납니다"; S.mt = 3.0
+    P.lv = 25; P.nx = xpNeed(25); S.t = 530.0; S.T = 900.0; S.elt = 999.0; S.msg = "곧 수호자가 나타납니다"; S.mt = 3.0
 }
 fun awkCost(a: Awk, l: Int) = a.c * (l + 1)
 fun awkFmt(a: Awk, v: Double): String = if (a.u == "p") "+" + fmtN(Math.round(v * 1000) / 10.0) + "%" else "+" + Math.round(v)

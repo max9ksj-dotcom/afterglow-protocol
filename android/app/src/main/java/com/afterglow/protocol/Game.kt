@@ -153,7 +153,11 @@ fun bugName(e: En, txt: String) {
     S.fx.add(Fx('m', 1.2, 1.2).also { it.x = e.x; it.y = e.y - e.r - 30; it.txt = txt })
     S.bt = Math.max(S.bt, .18)
 }
-fun gainXP(v: Double) { P.xp += v * (if (S.mut?.id == "drain") 2 else 1) * (1 + tb("xp") + up("xp") + bv("xp")) * (1 + Math.min(.5 + .5 * rlc("combo"), S.cb * .02)) }
+/** 레벨업 필요 경험치(웹판 xpNeed): Lv10까지 6+Lv×4, 그 뒤 (Lv-10)²×0.25 추가 */
+fun xpNeed(l: Int): Double = 6.0 + l * 4 + Math.round(.25 * Math.pow(Math.max(0, l - 10).toDouble(), 2.0))
+/** 경험치 보너스 상한(웹판 xpB): +100%를 넘으면 점점 덜 오르고 최대 +200% */
+fun xpB(b: Double): Double = if (b <= 1) b else 1 + (b - 1) / b
+fun gainXP(v: Double) { P.xp += v * (if (S.mut?.id == "drain") 2 else 1) * (1 + xpB(tb("xp") + up("xp") + bv("xp"))) * (1 + Math.min(.5 + .5 * rlc("combo"), S.cb * .02)) }
 
 // ===== 합체 무기 부가 효과 =====
 val RI = mapOf("cleave" to "#ffd0a0", "ricochet" to "#f6f", "pull" to "#a8f", "shards" to "#8f8", "chain" to "#ff6", "mark" to "#9ef", "blast" to "#f86")
@@ -993,7 +997,7 @@ fun upd(dt0: Double) {
     S.gm.removeAll { it.g }
     capUpd(dt); woUpd(dt)
     if (P.xp >= P.nx && S.run) {
-        P.xp -= P.nx; P.lv++; P.nx = 6.0 + P.lv * 4; P.hp = Math.min(P.mh, P.hp + P.mh * up("lu")); lvup()
+        P.xp -= P.nx; P.lv++; P.nx = xpNeed(P.lv); P.hp = Math.min(P.mh, P.hp + P.mh * up("lu")); lvup()
     }
     if (S.rpend && S.run && (S.pg < 2 || S.pg >= 4)) { S.rpend = false; relicPick() }
     if (P.hp <= 0) {
